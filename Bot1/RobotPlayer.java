@@ -1,4 +1,4 @@
-package NewBot;
+package Bot1;
 
 import battlecode.common.*;
 import battlecode.world.Well;
