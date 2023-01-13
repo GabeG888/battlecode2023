@@ -1,8 +1,9 @@
 package Bot1;
 
 import battlecode.common.*;
-import battlecode.world.Well;
+import scala.Console;
 
+import java.util.Map;
 import java.util.Random;
 
 
@@ -21,8 +22,15 @@ public strictfp class RobotPlayer {
 
     static  MapLocation myHQ;
     static MapLocation myWell;
-    static MapLocation target;
     static ResourceType myResource;
+
+    static MapLocation target;
+
+    static int bestDistance = 999999;
+    static Direction lastDirection;
+    static MapLocation lastTarget;
+    static int turnsWaited = 0;
+    static int turnsToWait = 5;
 
     static Random rng = new Random();
 
@@ -40,7 +48,8 @@ public strictfp class RobotPlayer {
         if(myResource == null) return;
         RobotInfo[] robots = rc.senseNearbyRobots(1000, rc.getTeam());
         for(RobotInfo robot : robots) {
-            if(rc.canTransferResource(robot.getLocation(), myResource, rc.getResourceAmount(myResource))) {
+            if(robot.getType() == RobotType.HEADQUARTERS &&
+                    rc.canTransferResource(robot.getLocation(), myResource, rc.getResourceAmount(myResource))) {
                 rc.transferResource(robot.getLocation(), myResource, rc.getResourceAmount(myResource));
             }
         }
@@ -52,7 +61,7 @@ public strictfp class RobotPlayer {
             int targetY = rng.nextInt(rc.getMapHeight());
             target = new MapLocation(targetX, targetY);
         }
-        if(!navigateToLocation(rc, target)) {
+        if(!navigateToLocationBug(rc, target)) {
             int targetX = rng.nextInt(rc.getMapWidth());
             int targetY = rng.nextInt(rc.getMapHeight());
             target = new MapLocation(targetX, targetY);
@@ -66,10 +75,11 @@ public strictfp class RobotPlayer {
         int targetX = myLoc.x * 2 - location.x;
         int targetY = myLoc.y * 2 - location.y;
         MapLocation targetLoc = new MapLocation(targetX, targetY);
-        navigateToLocation(rc, targetLoc);
+        navigateToLocationFuzzy(rc, targetLoc);
     }
 
-    static boolean navigateToLocation(RobotController rc, MapLocation targetLoc) throws GameActionException {
+    static boolean navigateToLocationFuzzy(RobotController rc, MapLocation targetLoc) throws GameActionException {
+        bestDistance = 999999;
         MapLocation myLoc = rc.getLocation();
         if(rc.canSenseLocation(targetLoc)) {
             if(!rc.sensePassability(targetLoc)) return false;
@@ -102,14 +112,76 @@ public strictfp class RobotPlayer {
         return true;
     }
 
+    static boolean navigateToLocationBug(RobotController rc, MapLocation targetLoc) throws GameActionException {
+        rc.setIndicatorLine(rc.getLocation(), targetLoc, 0, 0, 255);
+        rc.setIndicatorString(String.valueOf(bestDistance));
+        if(targetLoc != lastTarget) {
+            bestDistance = 999999;
+            lastDirection = null;
+            lastTarget = targetLoc;
+        }
+        if(!rc.isMovementReady()) return true;
+        if(bestDistance < 1) return true;
+
+        if(rc.canSenseLocation(targetLoc) && !rc.sensePassability(targetLoc)) return false;
+
+        MapLocation myLoc = rc.getLocation();
+        bestDistance = Math.min(bestDistance, myLoc.distanceSquaredTo(targetLoc));
+
+        int bestDistanceNow = bestDistance;
+        Direction bestDirection = Direction.CENTER;
+        for(Direction direction : directions) {
+            int distance = myLoc.add(direction).distanceSquaredTo(targetLoc);
+            if(distance < bestDistanceNow && rc.canMove(direction)) {
+                bestDistanceNow = distance;
+                bestDirection = direction;
+            }
+        }
+        if(bestDirection != Direction.CENTER) {
+            if(rc.canMove(bestDirection)) {
+                rc.move(bestDirection);
+                lastDirection = bestDirection.rotateRight().rotateRight();
+                turnsWaited = 0;
+                return !rc.onTheMap(targetLoc) || !rc.canSenseLocation(targetLoc) ||
+                        rc.sensePassability(targetLoc);
+            }
+        }
+
+        if(lastDirection == null) lastDirection = myLoc.directionTo(targetLoc).rotateRight().rotateRight();
+        Direction direction = lastDirection.rotateLeft().rotateLeft();
+        for(int i = 0; i < 8; i++) {
+            if(rc.onTheMap(myLoc.add(direction)) && !rc.sensePassability(myLoc.add(direction))) {
+                direction = direction.rotateRight();
+                continue;
+            }
+            if(rc.canMove(direction)) {
+                rc.move(direction);
+                lastDirection = direction;
+                turnsWaited = 0;
+                return true;
+            }
+            else if(rc.onTheMap(myLoc.add(direction)) && rc.senseRobotAtLocation(myLoc.add(direction)) != null &&
+                    rc.senseRobotAtLocation(myLoc.add(direction)).getType() == RobotType.HEADQUARTERS ||
+                    turnsWaited > turnsToWait) {
+                bestDistance = 999999;
+                direction = direction.rotateRight();
+            }
+            else {
+                turnsWaited += 1;
+                return true;
+            }
+        }
+        return true;
+    }
+
     static boolean surroundHQ(RobotController rc, RobotInfo enemy) throws GameActionException {
         MapLocation enemyLocation = enemy.getLocation();
         for(Direction direction : directions) {
             MapLocation loc = enemyLocation.add(direction);
-            if(!rc.canSenseLocation(loc)) return navigateToLocation(rc, loc);
+            if(!rc.canSenseLocation(loc)) return navigateToLocationFuzzy(rc, loc);
             if(!rc.sensePassability(loc)) continue;
             if(rc.senseRobotAtLocation(loc) != null && rc.senseRobotAtLocation(loc).getTeam() == rc.getTeam()) continue;
-            navigateToLocation(rc, loc);
+            navigateToLocationFuzzy(rc, loc);
             return true;
         }
         return false;
@@ -200,7 +272,7 @@ public strictfp class RobotPlayer {
 
         if(!moved) {
             if(myResource != null && rc.getResourceAmount(myResource) > 36) {
-                navigateToLocation(rc, myHQ);
+                navigateToLocationBug(rc, myHQ);
             }
             else {
                 if(myWell == null) {
@@ -211,7 +283,7 @@ public strictfp class RobotPlayer {
                     else moved = navigateRandomly(rc);
                 }
                 if(myWell != null) {
-                    moved = navigateToLocation(rc, myWell);
+                    moved = navigateToLocationBug(rc, myWell);
                 }
             }
         }
@@ -233,7 +305,7 @@ public strictfp class RobotPlayer {
                 else moved = surroundHQ(rc, enemy);
             }
             else {
-                if(!moved) moved = navigateToLocation(rc, enemy.getLocation());
+                if(!moved) moved = navigateToLocationFuzzy(rc, enemy.getLocation());
                 if(!attacked && rc.canAttack(enemy.getLocation())) {
                     rc.attack(enemy.getLocation());
                     attacked = true;
