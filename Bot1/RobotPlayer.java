@@ -1,4 +1,4 @@
-package NewBot;
+package Bot1;
 
 import battlecode.common.*;
 
@@ -145,8 +145,7 @@ public strictfp class RobotPlayer {
                 rc.move(bestDirection);
                 lastDirection = bestDirection.rotateRight().rotateRight();
                 turnsWaited = 0;
-                return !rc.onTheMap(targetLoc) || !rc.canSenseLocation(targetLoc) ||
-                        rc.sensePassability(targetLoc);
+                return !rc.canSenseLocation(targetLoc) ||rc.sensePassability(targetLoc);
             }
         }
 
