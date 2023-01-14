@@ -1,12 +1,14 @@
-package Bot1;
+package NewBot;
 
 import battlecode.common.*;
-import scala.Console;
 
-import java.util.Map;
+import java.awt.*;
 import java.util.Random;
+import java.util.Arrays;
+import java.util.Comparator;
 
 
+@SuppressWarnings("unused")
 public strictfp class RobotPlayer {
 
     static final Direction[] directions = {
@@ -31,6 +33,9 @@ public strictfp class RobotPlayer {
     static MapLocation lastTarget;
     static int turnsWaited = 0;
     static int turnsToWait = 5;
+
+    static int squadLeader;
+    static MapLocation lastLeaderLocation;
 
     static Random rng = new Random();
 
@@ -70,12 +75,12 @@ public strictfp class RobotPlayer {
         return true;
     }
 
-    static void navigateAwayFrom(RobotController rc, MapLocation location) throws GameActionException {
+    static boolean navigateAwayFrom(RobotController rc, MapLocation location) throws GameActionException {
         MapLocation myLoc = rc.getLocation();
         int targetX = myLoc.x * 2 - location.x;
         int targetY = myLoc.y * 2 - location.y;
         MapLocation targetLoc = new MapLocation(targetX, targetY);
-        navigateToLocationFuzzy(rc, targetLoc);
+        return navigateToLocationFuzzy(rc, targetLoc);
     }
 
     static boolean navigateToLocationFuzzy(RobotController rc, MapLocation targetLoc) throws GameActionException {
@@ -113,8 +118,6 @@ public strictfp class RobotPlayer {
     }
 
     static boolean navigateToLocationBug(RobotController rc, MapLocation targetLoc) throws GameActionException {
-        rc.setIndicatorLine(rc.getLocation(), targetLoc, 0, 0, 255);
-        rc.setIndicatorString(String.valueOf(bestDistance));
         if(targetLoc != lastTarget) {
             bestDistance = 999999;
             lastDirection = null;
@@ -182,9 +185,98 @@ public strictfp class RobotPlayer {
             if(!rc.sensePassability(loc)) continue;
             if(rc.senseRobotAtLocation(loc) != null && rc.senseRobotAtLocation(loc).getTeam() == rc.getTeam()) continue;
             navigateToLocationFuzzy(rc, loc);
+            squadLeader = enemy.getID();
             return true;
         }
         return false;
+    }
+
+    static boolean attackNearby(RobotController rc) throws GameActionException{
+        RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
+        MapLocation myLoc = rc.getLocation();
+
+        Arrays.sort(enemies, Comparator.comparingInt(RobotInfo::getHealth));
+
+        for(RobotInfo enemy : enemies) {
+            if(rc.canAttack(enemy.getLocation())) {
+                rc.attack(enemy.getLocation());
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    static boolean surroundHQs(RobotController rc) throws GameActionException{
+        RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
+        MapLocation myLoc = rc.getLocation();
+
+        for(RobotInfo enemy : enemies) {
+            if(enemy.getType() == RobotType.HEADQUARTERS) {
+                if(!myLoc.isWithinDistanceSquared(enemy.getLocation(), 2)) {
+                    if(surroundHQ(rc, enemy)) return true;
+                }
+                else return true;
+            }
+        }
+        return false;
+    }
+
+    static boolean followLeader(RobotController rc) throws GameActionException{
+        if(!rc.canSenseRobot(squadLeader)) return false;
+        MapLocation leaderLocation = rc.senseRobot(squadLeader).getLocation();
+        if(lastLeaderLocation == null) lastLeaderLocation = leaderLocation;
+        if(rc.getLocation().distanceSquaredTo(leaderLocation) > 2)
+        {
+            lastLeaderLocation = leaderLocation;
+            return navigateToLocationFuzzy(rc, leaderLocation);
+        }
+        else {
+            lastLeaderLocation = leaderLocation;
+            return navigateToLocationFuzzy(rc,
+                    rc.getLocation().add(lastLeaderLocation.directionTo(leaderLocation)));
+        }
+    }
+
+    static boolean maintainDistance(RobotController rc) throws GameActionException{
+        RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
+        MapLocation myLoc = rc.getLocation();
+
+        RobotInfo closestEnemy = null;
+        int closestDistance = 999;
+        for(RobotInfo enemy : enemies) {
+            if(enemy.getType() != RobotType.LAUNCHER) continue;
+            int distance = myLoc.distanceSquaredTo(enemy.getLocation());
+            if(distance < closestDistance) {
+                closestEnemy = enemy;
+                closestDistance = distance;
+            }
+        }
+
+        if(closestEnemy == null) return false;
+
+        return true;
+    }
+
+    static boolean makeSquad(RobotController rc) throws GameActionException{
+        RobotInfo[] robots = rc.senseNearbyRobots(1000, rc.getTeam());
+        int potentialSquadMembers = 0;
+        int potentialLeader = rc.getID();
+        for(RobotInfo robot : robots) {
+            if(robot.getType() == RobotType.LAUNCHER && rc.getLocation().distanceSquaredTo(robot.getLocation()) < 3) {
+                potentialSquadMembers++;
+                if(robot.getID() < potentialLeader) potentialLeader = robot.getID();
+            }
+        }
+
+        if(potentialSquadMembers > 1) {
+            squadLeader = potentialLeader;
+            return true;
+        }
+        else {
+            if(rc.canSenseRobot(potentialLeader)) navigateToLocationFuzzy(rc, rc.senseRobot(potentialLeader).getLocation());
+            return false;
+        }
     }
 
     @SuppressWarnings("unused")
@@ -296,23 +388,52 @@ public strictfp class RobotPlayer {
         boolean moved = false;
         boolean attacked = false;
 
-        RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
-        MapLocation myLoc = rc.getLocation();
-
-        for(RobotInfo enemy : enemies) {
-            if(enemy.getType() == RobotType.HEADQUARTERS && !moved) {
-                if(myLoc.isWithinDistanceSquared(enemy.getLocation(), 2)) moved = true;
-                else moved = surroundHQ(rc, enemy);
-            }
-            else {
-                if(!moved) moved = navigateToLocationFuzzy(rc, enemy.getLocation());
-                if(!attacked && rc.canAttack(enemy.getLocation())) {
-                    rc.attack(enemy.getLocation());
-                    attacked = true;
+        if(myHQ == null) {
+            RobotInfo[] robots = rc.senseNearbyRobots(1000, rc.getTeam());
+            for(RobotInfo robot : robots) {
+                if(robot.getType() == RobotType.HEADQUARTERS){
+                    myHQ = robot.getLocation();
+                    break;
                 }
             }
         }
 
-        if(!moved) navigateRandomly(rc);
+        if(!rc.canSenseRobot(squadLeader)) {
+            if(!makeSquad(rc)) squadLeader = -1;
+        }
+
+        if(squadLeader == 0) {
+            attackNearby(rc);
+            makeSquad(rc);
+            attackNearby(rc);
+        }
+        else if(squadLeader == -1) {
+            attackNearby(rc);
+            moved = surroundHQs(rc);
+            attackNearby(rc);
+            if(!moved) navigateRandomly(rc);
+            attackNearby(rc);
+        }
+        else {
+            if(squadLeader == rc.getID()) {
+                attackNearby(rc);
+                moved = surroundHQs(rc);
+                attackNearby(rc);
+                if(!moved) moved = maintainDistance(rc);
+                attackNearby(rc);
+                //navigateToLocationBug(rc, new MapLocation(rc.getMapWidth() - myHQ.x, rc.getMapHeight() - myHQ.y));
+                if(!moved) navigateRandomly(rc);
+                attackNearby(rc);
+            }
+            else {
+                attackNearby(rc);
+                moved = surroundHQs(rc);
+                attackNearby(rc);
+                if(!moved) moved = followLeader(rc);
+                attackNearby(rc);
+                if(!moved) maintainDistance(rc);
+                attackNearby(rc);
+            }
+        }
     }
 }
