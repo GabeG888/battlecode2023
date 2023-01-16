@@ -545,7 +545,7 @@ public strictfp class RobotPlayer {
                         campers ++;
                     }
                 }
-                if(!camping && campers < 4 && rc.getLocation().distanceSquaredTo(enemy.getLocation()) < 2) {
+                if(!camping && campers < 4 && rc.getLocation().distanceSquaredTo(enemy.getLocation()) <= 2) {
                     camping = true;
                     return;
                 }
@@ -590,7 +590,7 @@ public strictfp class RobotPlayer {
             Direction[] sides = new Direction[] { d, d.rotateLeft(), d.rotateRight()};
             for(Direction ds : sides) {
                 if(rc.onTheMap(rc.getLocation().add(ds)) && rc.senseMapInfo(rc.getLocation().add(ds)).hasCloud()) {
-                    if(!moved) rc.move(ds);
+                    if(rc.canMove(ds)) rc.move(ds);
                     return;
                 }
             }
