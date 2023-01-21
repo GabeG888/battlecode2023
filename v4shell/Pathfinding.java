@@ -106,50 +106,50 @@ public class Pathfinding {
 
         if(rc.canSenseLocation(targetLoc) && !rc.sensePassability(targetLoc)) return false;
 
-        MapLocation myLoc = rc.getLocation();
-        bestDistance = Math.min(bestDistance, myLoc.distanceSquaredTo(targetLoc));
+        while(rc.isMovementReady()) {
+            MapLocation myLoc = rc.getLocation();
+            bestDistance = Math.min(bestDistance, myLoc.distanceSquaredTo(targetLoc));
 
-        int bestDistanceNow = bestDistance;
-        Direction bestDirection = Direction.CENTER;
-        for(Direction direction : directions) {
-            int distance = myLoc.add(direction).distanceSquaredTo(targetLoc);
-            if(distance < bestDistanceNow && canMove(rc, direction)) {
-                bestDistanceNow = distance;
-                bestDirection = direction;
+            int bestDistanceNow = bestDistance;
+            Direction bestDirection = Direction.CENTER;
+            for (Direction direction : directions) {
+                int distance = myLoc.add(direction).distanceSquaredTo(targetLoc);
+                if (distance < bestDistanceNow && canMove(rc, direction)) {
+                    bestDistanceNow = distance;
+                    bestDirection = direction;
+                }
             }
-        }
-        if(bestDirection != Direction.CENTER) {
-            if(canMove(rc, bestDirection)) {
-                rc.move(bestDirection);
-                lastDirection = bestDirection.rotateRight().rotateRight();
-                turnsWaited = 0;
-                return !rc.canSenseLocation(targetLoc) ||
-                        rc.sensePassability(targetLoc);
+            if (bestDirection != Direction.CENTER) {
+                if (canMove(rc, bestDirection)) {
+                    rc.move(bestDirection);
+                    lastDirection = bestDirection.rotateRight().rotateRight();
+                    turnsWaited = 0;
+                    return !rc.canSenseLocation(targetLoc) ||
+                            rc.sensePassability(targetLoc);
+                }
             }
-        }
 
-        if(lastDirection == null) lastDirection = myLoc.directionTo(targetLoc).rotateRight().rotateRight();
-        Direction direction = lastDirection.rotateLeft().rotateLeft();
-        for(int i = 0; i < 8; i++) {
-            if(rc.onTheMap(myLoc.add(direction)) && !rc.sensePassability(myLoc.add(direction))) {
-                direction = direction.rotateRight();
-                continue;
-            }
-            if(canMove(rc, direction)) {
-                rc.move(direction);
-                lastDirection = direction;
-                turnsWaited = 0;
-                return true;
-            }
-            else if(rc.onTheMap(myLoc.add(direction)) && rc.senseRobotAtLocation(myLoc.add(direction)) != null &&
-                    rc.senseRobotAtLocation(myLoc.add(direction)).getType() == RobotType.HEADQUARTERS ||
-                    turnsWaited > turnsToWait) {
-                bestDistance = 999999;
-                direction = direction.rotateRight();
-            }
-            else {
-                turnsWaited += 1;
-                return true;
+            if (lastDirection == null) lastDirection = myLoc.directionTo(targetLoc).rotateRight().rotateRight();
+            Direction direction = lastDirection.rotateLeft().rotateLeft();
+            for (int i = 0; i < 8; i++) {
+                if (rc.onTheMap(myLoc.add(direction)) && !rc.sensePassability(myLoc.add(direction))) {
+                    direction = direction.rotateRight();
+                    continue;
+                }
+                if (canMove(rc, direction)) {
+                    rc.move(direction);
+                    lastDirection = direction;
+                    turnsWaited = 0;
+                    return true;
+                } else if (rc.onTheMap(myLoc.add(direction)) && rc.senseRobotAtLocation(myLoc.add(direction)) != null &&
+                        rc.senseRobotAtLocation(myLoc.add(direction)).getType() == RobotType.HEADQUARTERS ||
+                        turnsWaited > turnsToWait) {
+                    bestDistance = 999999;
+                    direction = direction.rotateRight();
+                } else {
+                    turnsWaited += 1;
+                    return true;
+                }
             }
         }
         return true;
