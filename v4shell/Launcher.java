@@ -25,7 +25,7 @@ public class Launcher {
             Arrays.sort(enemies, Comparator.comparingInt(Launcher::getAttackPriority).thenComparingInt(RobotInfo::getHealth));
 
             for(RobotInfo enemy : enemies) {
-                if(rc.canAttack(enemy.getLocation())) {
+                if(rc.canAttack(enemy.getLocation()) && enemy.getType() != RobotType.HEADQUARTERS) {
                     rc.attack(enemy.getLocation());
                     attacked = true;
                     break;
