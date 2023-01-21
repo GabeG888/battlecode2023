@@ -11,10 +11,17 @@ public class MapStore {
     public static void updateMap(RobotController rc) throws GameActionException {
         for(MapInfo mi : rc.senseNearbyMapInfos()) {
             MapLocation loc = mi.getMapLocation();
+
             if(map.containsKey(loc)) continue;
+            if(!rc.canSenseLocation(loc)) continue;
+
             CustomMapInfo cmi =
                     new CustomMapInfo(mi.getCurrentDirection(), mi.isPassable(),
-                                        mi.hasCloud(), rc.senseIsland(loc) != -1, rc.senseWell(loc).getResourceType());
+                                        mi.hasCloud(), rc.senseIsland(loc) != -1, null);
+            if(rc.senseWell(loc) != null) {
+                cmi.well = rc.senseWell(loc).getResourceType();
+            }
+
             map.put(loc, cmi);
         }
     }

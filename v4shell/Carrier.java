@@ -10,8 +10,6 @@ public class Carrier {
     static ResourceType myResource;
     static boolean scout = false;
     public static void run(RobotController rc) throws GameActionException {
-        MapStore.updateMap(rc);
-
         if(myHQ == null) initHQ(rc);
         if(myWell == null && !scout) receiveAssignment(rc);
 
@@ -26,7 +24,7 @@ public class Carrier {
                 rc.attack(enemy.getLocation());
                 attacked = true;
             }
-            if(enemy.getType() == RobotType.LAUNCHER) {
+            if(enemy.getType() == RobotType.LAUNCHER && myHQ != null) {
                 Pathfinding.navigateToLocationBug(rc, myHQ);
                 moved = true;
             }
