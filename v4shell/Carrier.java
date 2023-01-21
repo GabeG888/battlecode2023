@@ -9,20 +9,19 @@ public class Carrier {
     static MapLocation myWell = null;
     static ResourceType myResource;
     static boolean scout = false;
+
     public static void run(RobotController rc) throws GameActionException {
         if(myHQ == null) initHQ(rc);
-        if(myWell == null && !scout) receiveAssignment(rc);
+        if(myWell == null && !scout && rc.canWriteSharedArray(0, 0)) receiveAssignment(rc);
 
         collectResources(rc);
         depositResources(rc);
 
         boolean moved = false;
-        boolean attacked = false;
         RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
         for(RobotInfo enemy : enemies) {
-            if(enemy.getType() != RobotType.HEADQUARTERS && enemy.getType() != RobotType.CARRIER && !attacked && rc.canAttack(enemy.getLocation())) {
+            if(enemy.getType() != RobotType.HEADQUARTERS && enemy.getType() != RobotType.CARRIER && rc.canAttack(enemy.getLocation())) {
                 rc.attack(enemy.getLocation());
-                attacked = true;
             }
             if(enemy.getType() == RobotType.LAUNCHER && myHQ != null) {
                 Pathfinding.navigateToLocationBug(rc, myHQ);
@@ -33,39 +32,39 @@ public class Carrier {
         collectResources(rc);
         depositResources(rc);
 
-        if(!moved) {
-            if (myResource != null && rc.getResourceAmount(myResource) > 36) {
-                Pathfinding.navigateToLocationBug(rc, myHQ);
+        if (myResource != null && rc.getResourceAmount(myResource) > 36) {
+            Pathfinding.navigateToLocationBug(rc, myHQ);
+        }
+        else if(myWell != null) {
+            moved = Pathfinding.navigateToLocationBug(rc, myWell);
+        }
+        else if(scout) {
+            WellInfo[] manaWells = rc.senseNearbyWells(ResourceType.MANA);
+            if(manaWells.length > 0) {
+                for(WellInfo manaWell : manaWells) {
+                    if(Communicator.alreadyRecorded(rc, manaWell.getMapLocation())) continue;
+                    myResource = ResourceType.MANA;
+                    myWell = manaWell.getMapLocation();
+                    scout = false;
+                }
             }
-            else if(myWell != null) {
+
+            if(myResource == null) {
+                WellInfo[] adamWells = rc.senseNearbyWells(ResourceType.ADAMANTIUM);
+                if(adamWells.length > 0) {
+                    for(WellInfo adamWell : adamWells) {
+                        if(Communicator.alreadyRecorded(rc, adamWell.getMapLocation())) continue;
+                        myResource = ResourceType.ADAMANTIUM;
+                        myWell = adamWell.getMapLocation();
+                        scout = false;
+                    }
+                }
+            }
+
+            if(myWell != null) {
                 moved = Pathfinding.navigateToLocationBug(rc, myWell);
             }
-            else if(scout) {
-                WellInfo[] manaWells = rc.senseNearbyWells(ResourceType.MANA);
-                if(manaWells.length > 0) {
-                    for(WellInfo manaWell : manaWells) {
-                        if(Communicator.alreadyRecorded(rc, manaWell.getMapLocation())) continue;
-                        myResource = ResourceType.MANA;
-                        myWell = manaWell.getMapLocation();
-                    }
-                }
-
-                if(myResource == null) {
-                    WellInfo[] adamWells = rc.senseNearbyWells(ResourceType.ADAMANTIUM);
-                    if(adamWells.length > 0) {
-                        for(WellInfo adamWell : adamWells) {
-                            if(Communicator.alreadyRecorded(rc, adamWell.getMapLocation())) continue;
-                            myResource = ResourceType.ADAMANTIUM;
-                            myWell = adamWell.getMapLocation();
-                        }
-                    }
-                }
-
-                if(myWell != null) {
-                    moved = Pathfinding.navigateToLocationBug(rc, myWell);
-                }
-                else moved = Pathfinding.navigateRandomly(rc);
-            }
+            else moved = Pathfinding.navigateRandomly(rc);
         }
 
         if(moved)

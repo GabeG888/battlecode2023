@@ -23,7 +23,7 @@ public class Headquarters {
             MapLocation loc = wi.getMapLocation();
             ResourceType rt = wi.getResourceType();
 
-            Communicator.storeWellInfo(rc, loc.x, loc.y, rt);
+            Communicator.storeWellInfo(rc, loc.x, loc.y, rt, 7);
         }
     }
 

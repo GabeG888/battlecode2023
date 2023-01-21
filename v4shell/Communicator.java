@@ -31,13 +31,14 @@ public class Communicator {
         return 0;
     }
 
-    public static void storeWellInfo(RobotController rc, int x, int y, ResourceType rt) throws GameActionException {
+    public static void storeWellInfo(RobotController rc, int x, int y, ResourceType rt, int count) throws GameActionException {
         assert rc.canWriteSharedArray(0, 0);
         if(alreadyRecorded(rc, new MapLocation(x, y))) return;
         for(int i = 4; i <= 62; i++) {
             if(rc.readSharedArray(i) == 0) {
                 int encoded = x * 60 + y + 1;
                 encoded |= (rt == ResourceType.MANA ? 0 : 1) << 12;
+                encoded |= count << 13;
                 rc.writeSharedArray(i, encoded);
                 return;
             }

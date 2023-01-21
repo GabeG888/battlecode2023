@@ -17,25 +17,46 @@ public class Launcher {
         else if(type == RobotType.CARRIER) return 4;
         return 5;
     }
-    static boolean attackNearby(RobotController rc) throws GameActionException{
+    static void attackNearby(RobotController rc) throws GameActionException{
+        while(rc.isActionReady()) {
+            boolean attacked = false;
+            RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
+
+            Arrays.sort(enemies, Comparator.comparingInt(Launcher::getAttackPriority).thenComparingInt(RobotInfo::getHealth));
+
+            for(RobotInfo enemy : enemies) {
+                if(rc.canAttack(enemy.getLocation())) {
+                    rc.attack(enemy.getLocation());
+                    attacked = true;
+                    break;
+                }
+            }
+            if(!attacked) break;
+        }
+    }
+
+    static void run(RobotController rc) throws GameActionException {
         RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
-        MapLocation myLoc = rc.getLocation();
+        RobotInfo[] allies = rc.senseNearbyRobots(1000, rc.getTeam());
 
-        Arrays.sort(enemies, Comparator.comparingInt(Launcher::getAttackPriority).thenComparingInt(RobotInfo::getHealth));
-
+        int enemyLauchers = 0;
         for(RobotInfo enemy : enemies) {
-            if(rc.canAttack(enemy.getLocation())) {
-                rc.attack(enemy.getLocation());
-                return true;
+            if(enemy.getType() == RobotType.LAUNCHER) enemyLauchers++;
+        }
+        int allyLaunchers = 0;
+        for(RobotInfo ally : allies) {
+            if(ally.getType() == RobotType.LAUNCHER) allyLaunchers++;
+        }
+
+        if(enemies.length > 0) {
+            attackNearby(rc);
+            if(enemyLauchers > allyLaunchers) {
+                Pathfinding.navigateAwayFrom(rc, enemies[0].getLocation());
+            }
+            else if(enemyLauchers < allyLaunchers) {
+                Pathfinding.navigateToLocationFuzzy(rc, enemies[0].getLocation());
             }
         }
-        return false;
+        Pathfinding.navigateRandomly(rc);
     }
-    static void run(RobotController rc) throws GameActionException {
-        boolean attacked = false;
-        boolean moved = false;
-
-        attackNearby(rc);
-    }
-
 }
