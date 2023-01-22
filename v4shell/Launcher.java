@@ -39,6 +39,12 @@ public class Launcher {
         RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
         RobotInfo[] allies = rc.senseNearbyRobots(1000, rc.getTeam());
 
+        int enemyLauchersNearby = 0;
+        for(RobotInfo enemy : enemies) {
+            if(enemy.getType() == RobotType.LAUNCHER && rc.getLocation().distanceSquaredTo(enemy.getLocation()) <= 16) {
+                enemyLauchersNearby++;
+            }
+        }
         int enemyLauchers = 0;
         for(RobotInfo enemy : enemies) {
             if(enemy.getType() == RobotType.LAUNCHER) enemyLauchers++;
@@ -50,13 +56,24 @@ public class Launcher {
 
         if(enemies.length > 0) {
             attackNearby(rc);
-            if(enemyLauchers > allyLaunchers) {
+
+            if(enemyLauchersNearby > allyLaunchers) {
                 Pathfinding.navigateAwayFrom(rc, enemies[0].getLocation());
             }
-            else if(enemyLauchers < allyLaunchers) {
-                Pathfinding.navigateToLocationFuzzy(rc, enemies[0].getLocation());
+
+            for(RobotInfo enemy : enemies) {
+                if(enemy.getType() == RobotType.HEADQUARTERS) {
+                    Pathfinding.navigateRandomly(rc);
+                }
+            }
+
+            if(enemyLauchers == 0) {
+                Pathfinding.navigateRandomly(rc);
             }
         }
-        Pathfinding.navigateRandomly(rc);
+        else {
+            Pathfinding.navigateRandomly(rc);
+
+        }
     }
 }

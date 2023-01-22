@@ -43,11 +43,15 @@ public class Pathfinding {
         return true;
     }
 
+    static int turnsSinceRandomTargetChange = 0;
     public static boolean navigateRandomly(RobotController rc) throws GameActionException {
-        if(target == null || rc.getLocation().distanceSquaredTo(target) < 5) {
+        turnsSinceRandomTargetChange++;
+        if(target == null || rc.getLocation().distanceSquaredTo(target) < 5 ||
+                turnsSinceRandomTargetChange > rc.getMapWidth() + rc.getMapHeight()) {
             int targetX = rng.nextInt(rc.getMapWidth());
             int targetY = rng.nextInt(rc.getMapHeight());
             target = new MapLocation(targetX, targetY);
+            turnsSinceRandomTargetChange = 0;
         }
         if(!navigateToLocationBug(rc, target)) {
             int targetX = rng.nextInt(rc.getMapWidth());
@@ -140,21 +144,28 @@ public class Pathfinding {
             Direction direction = lastDirection.rotateLeft().rotateLeft();
             for (int i = 0; i < 8; i++) {
                 MapLocation newLoc = myLoc.add(direction);
-                Direction current = rc.senseMapInfo(newLoc).getCurrentDirection();
-                if (rc.onTheMap(newLoc) && (!rc.sensePassability(newLoc) ||
-                        !towards(current, direction) || !towards(current, lastDirection))) {
+
+                if(!rc.onTheMap(newLoc) || !rc.sensePassability(newLoc)) {
                     direction = direction.rotateRight();
                     continue;
                 }
+
+                Direction current = rc.senseMapInfo(newLoc).getCurrentDirection();
+                if ((!towards(current, direction) || !towards(current, lastDirection))) {
+                    direction = direction.rotateRight();
+                    continue;
+                }
+
+                RobotInfo robotAtLoc = rc.senseRobotAtLocation(myLoc.add(direction));
+
                 if (canMove(rc, direction)) {
                     rc.setIndicatorString(String.valueOf(direction));
                     rc.move(direction);
                     lastDirection = direction;
                     turnsWaited = 0;
                     break;
-                } else if (rc.onTheMap(myLoc.add(direction)) && rc.senseRobotAtLocation(myLoc.add(direction)) != null &&
-                        rc.senseRobotAtLocation(myLoc.add(direction)).getType() == RobotType.HEADQUARTERS ||
-                        turnsWaited > turnsToWait) {
+                } else if (rc.onTheMap(myLoc.add(direction)) && robotAtLoc != null &&
+                        robotAtLoc.getType() == RobotType.HEADQUARTERS || turnsWaited > turnsToWait) {
                     bestDistance = 999999;
                     direction = direction.rotateRight();
                 } else {

@@ -22,8 +22,8 @@ public class Headquarters {
         for(WellInfo wi : rc.senseNearbyWells()) {
             MapLocation loc = wi.getMapLocation();
             ResourceType rt = wi.getResourceType();
-
-            Communicator.storeWellInfo(rc, loc.x, loc.y, rt, 7);
+            int count = rt == ResourceType.ADAMANTIUM ? 1 : 7;
+            Communicator.storeWellInfo(rc, loc.x, loc.y, rt, count);
         }
     }
 

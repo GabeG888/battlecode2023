@@ -20,12 +20,15 @@ public class Carrier {
         boolean moved = false;
         RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
         for(RobotInfo enemy : enemies) {
-            if(enemy.getType() != RobotType.HEADQUARTERS && enemy.getType() != RobotType.CARRIER && rc.canAttack(enemy.getLocation())) {
+            if(enemy.getType() != RobotType.HEADQUARTERS && rc.canAttack(enemy.getLocation())) {
                 rc.attack(enemy.getLocation());
             }
             if(enemy.getType() == RobotType.LAUNCHER && myHQ != null) {
                 Pathfinding.navigateToLocationBug(rc, myHQ);
                 moved = true;
+            }
+            if(enemy.getType() == RobotType.HEADQUARTERS && rc.getLocation().distanceSquaredTo(enemy.getLocation()) <= 9) {
+                Pathfinding.navigateRandomly(rc);
             }
         }
 
