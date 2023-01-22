@@ -5,6 +5,7 @@ import java.util.*;
 
 public class Carrier {
 
+    static int hqIdx = 0;
     static MapLocation myHQ = null;
     static MapLocation myWell = null;
     static ResourceType myResource;
@@ -43,24 +44,20 @@ public class Carrier {
         }
         else if(scout) {
             WellInfo[] manaWells = rc.senseNearbyWells(ResourceType.MANA);
-            if(manaWells.length > 0) {
-                for(WellInfo manaWell : manaWells) {
-                    if(Communicator.alreadyRecorded(rc, manaWell.getMapLocation())) continue;
-                    myResource = ResourceType.MANA;
-                    myWell = manaWell.getMapLocation();
-                    scout = false;
-                }
+            for (WellInfo manaWell : manaWells) {
+                if (Communicator.alreadyRecorded(rc, manaWell.getMapLocation())) continue;
+                myResource = ResourceType.MANA;
+                myWell = manaWell.getMapLocation();
+                scout = false;
             }
 
             if(myResource == null) {
                 WellInfo[] adamWells = rc.senseNearbyWells(ResourceType.ADAMANTIUM);
-                if(adamWells.length > 0) {
-                    for(WellInfo adamWell : adamWells) {
-                        if(Communicator.alreadyRecorded(rc, adamWell.getMapLocation())) continue;
-                        myResource = ResourceType.ADAMANTIUM;
-                        myWell = adamWell.getMapLocation();
-                        scout = false;
-                    }
+                for (WellInfo adamWell : adamWells) {
+                    if (Communicator.alreadyRecorded(rc, adamWell.getMapLocation())) continue;
+                    myResource = ResourceType.ADAMANTIUM;
+                    myWell = adamWell.getMapLocation();
+                    scout = false;
                 }
             }
 
@@ -75,15 +72,15 @@ public class Carrier {
     }
 
     static void receiveAssignment(RobotController rc) throws GameActionException {
-        for(int i = 4; i <= 62; i++) {
+        for(int i = 4; i <= 23; i++) {
             int wellState = rc.readSharedArray(i);
-            int num = wellState >> 13;
-            if(num > 0) {
-                num--;
-                rc.writeSharedArray(i, (wellState & 0b1_1111_1111_1111) | (num << 13));
-                int encoded = (wellState & 0b0_1111_1111_1111) - 1;
-                myWell = new MapLocation(encoded/60, encoded%60);
-                myResource = (wellState & 0b1_0000_0000_0000) > 0 ? ResourceType.ADAMANTIUM : ResourceType.MANA;
+            Assignment a = new Assignment(wellState);
+            if(a.num > 0) {
+                a.num--;
+                rc.writeSharedArray(i, a.encodeAssignment());
+                Well well = new Well(rc, a.wellIdx);
+                myWell = well.getLoc();
+                myResource = well.resourceType;
                 return;
             }
         }
@@ -91,9 +88,11 @@ public class Carrier {
     }
 
     static void initHQ(RobotController rc) throws GameActionException {
+        if(rc.getRoundNum() == 1) return;
         for(RobotInfo robot : rc.senseNearbyRobots(1000, rc.getTeam())) {
             if(robot.getType() == RobotType.HEADQUARTERS) {
                 myHQ = robot.getLocation();
+                hqIdx = Communicator.getHQIdx(rc, myHQ);
                 return;
             }
         }
@@ -117,5 +116,7 @@ public class Carrier {
                 rc.transferResource(robot.getLocation(), myResource, rc.getResourceAmount(myResource));
             }
         }
+
+        //TODO: Inform HQ of well(s) that it discovered
     }
 }
