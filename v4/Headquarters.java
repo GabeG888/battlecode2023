@@ -1,8 +1,7 @@
-package v4shell;
+package v4;
 
 import battlecode.common.*;
 
-import java.awt.*;
 import java.util.*;
 
 public class Headquarters {
@@ -74,34 +73,77 @@ public class Headquarters {
         while(rc.isActionReady()) {
             if (rc.getResourceAmount(ResourceType.MANA) < 60) return;
 
-            MapLocation spawnLoc = rc.getLocation().add(towards(rc)).add(towards(rc));
-            for (int i = 0; i < directions.length + 1; i++) {
-                MapLocation newLoc = spawnLoc;
-                if (i != 0) newLoc = newLoc.add(directions[i - 1]);
-                if (rc.canBuildRobot(RobotType.LAUNCHER, newLoc)) {
-                    rc.buildRobot(RobotType.LAUNCHER, newLoc);
-                    break;
+            MapLocation bestSpawn = null;
+            int bestDist = 10000;
+            for(MapInfo mi : rc.senseNearbyMapInfos(9)) {
+                if(rc.canBuildRobot(RobotType.LAUNCHER, mi.getMapLocation())) {
+                    int dist = mi.getMapLocation().distanceSquaredTo(target);
+                    if(dist < bestDist) {
+                        bestDist = dist;
+                        bestSpawn = mi.getMapLocation();
+                    }
                 }
             }
+
+            if(bestSpawn != null) rc.buildRobot(RobotType.LAUNCHER, bestSpawn);
+            else return;
         }
     }
 
-    static void buildAnchors(RobotController rc) throws GameActionException {
-        while(rc.isActionReady()) {
-            if (rc.canBuildAnchor(Anchor.STANDARD) && rc.getRoundNum() > 10) {
-                rc.buildAnchor(Anchor.STANDARD);
-            }
-        }
-    }
-
+    static MapLocation target = null;
     public static void run(RobotController rc) throws GameActionException {
         if(rc.getRoundNum() == 1) {
             storeHQLoc(rc);
             detectWells(rc);
+            target = new MapLocation(rc.getMapWidth() / 2, rc.getMapHeight() / 2);
         }
         if(rc.getRoundNum() == 2 && rc.readSharedArray(63) == 0) MapStore.computeInitialSymmetry(rc);
-        if(rc.getRoundNum() == 3)             rc.setIndicatorString(towards(rc).toString());
+        if(rc.getRoundNum() == 3)  {
+            int bestDist = 10000;
+            int symmetry = rc.readSharedArray(63);
+            for(int i = 0 ; i < GameConstants.MAX_STARTING_HEADQUARTERS; i++) {
+                int encoded = rc.readSharedArray(i) - 1;
+                if(encoded == -1) return;
+                int x = encoded / 60, y = encoded % 60;
 
+                if((symmetry & MapStore.LEFTRIGHT) > 0) {
+                    MapLocation loc = new MapLocation(rc.getMapWidth() - 1 - x, y);
+                    int dist = rc.getLocation().distanceSquaredTo(loc);
+                    if(dist < bestDist) {
+                        target = loc;
+                        bestDist = dist;
+                    }
+                }
+                if((symmetry & MapStore.UPDOWN) > 0) {
+                    MapLocation loc = new MapLocation(x, rc.getMapHeight() - 1 - y);
+                    int dist = rc.getLocation().distanceSquaredTo(loc);
+                    if(dist < bestDist) {
+                        target = loc;
+                        bestDist = dist;
+                    }
+                }
+                if((symmetry & MapStore.ROTATIONAL) > 0) {
+                    MapLocation loc = new MapLocation(rc.getMapWidth() - 1 - x, rc.getMapHeight() - 1 - y);
+                    int dist = rc.getLocation().distanceSquaredTo(loc);
+                    if(dist < bestDist) {
+                        target = loc;
+                        bestDist = dist;
+                    }
+                }
+            }
+        }
+        rc.setIndicatorString(State.getState(rc).toString());
+
+        if(State.getState(rc) == State.COMPLETE_CONTROL) {
+            if(rc.canBuildAnchor(Anchor.STANDARD)) {
+                rc.buildAnchor(Anchor.STANDARD);
+            }
+            if(rc.getResourceAmount(ResourceType.MANA) > 400)
+                spawnLaunchers(rc);
+            return;
+        }
+
+        //Clear assignments list
         if(hqIdx == 0) {
             for(int i = 4; i <= 23; i++) {
                 rc.writeSharedArray(i, 0);
@@ -109,10 +151,12 @@ public class Headquarters {
         }
         postAssignments(rc);
 
+        //Spawn stuff
         spawnLaunchers(rc);
         int spawned = spawnCarriers(rc);
         if(rc.getRoundNum() == 2) spawned += 2;
 
+        //Queue assignments
         ArrayList<Well> manaWells = new ArrayList<>();
         ArrayList<Well> adamWells = new ArrayList<>();
 

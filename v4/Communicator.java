@@ -1,4 +1,4 @@
-package v4shell;
+package v4;
 
 import battlecode.common.*;
 

@@ -1,7 +1,10 @@
-package v4shell;
+package v4;
 
 import battlecode.common.*;
-import java.util.*;
+import v3.RobotPlayer;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class Carrier {
     static final Direction[] directions = {
@@ -24,10 +27,11 @@ public class Carrier {
         if(myHQ == null) initHQ(rc);
         if(myWell == null && !scout && rc.canWriteSharedArray(0, 0)) receiveAssignment(rc);
 
+        if(anchorStuff(rc)) return;
+
         collectResources(rc);
         depositResources(rc);
         recordWells(rc);
-
 
         boolean moved = false;
         RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
@@ -123,8 +127,8 @@ public class Carrier {
                 Well well = new Well(rc, a.wellIdx);
                 myWell = well.getLoc();
                 myResource = well.resourceType;
-                if(rc.getTeam().equals(Team.A))
-                    System.out.println("receiving assignment: "+  well.wellIdx + " " + wellState);
+                //if(rc.getTeam().equals(Team.A))
+                    //System.out.println("receiving assignment: "+  well.wellIdx + " " + wellState);
                 return;
             }
         }
@@ -177,5 +181,35 @@ public class Carrier {
                 rc.transferResource(robot.getLocation(), myResource, rc.getResourceAmount(myResource));
             }
         }
+    }
+
+    static boolean anchorStuff(RobotController rc) throws GameActionException {
+        if(State.getState(rc) == State.COMPLETE_CONTROL) {
+            if(rc.getAnchor() != null) {
+                int islan = rc.senseIsland(rc.getLocation());
+                if(islan != -1 && rc.senseAnchor(islan) == null) {
+                    rc.placeAnchor();
+                    return true;
+                }
+                int[] islands = rc.senseNearbyIslands();
+                for(int island : islands) {
+                    if(island == -1)continue;
+                    if(rc.senseAnchor(island) != null) continue;
+                    MapLocation[] locs = rc.senseNearbyIslandLocations(island);
+                    Pathfinding.navigateToLocationBug(rc, locs[0]);
+                    return true;
+                }
+            }
+            RobotInfo[] allies = rc.senseNearbyRobots(1000, rc.getTeam());
+            for(RobotInfo ally : allies) {
+                if(ally.getType() == RobotType.HEADQUARTERS) {
+                    if(rc.canTakeAnchor(ally.getLocation(), Anchor.STANDARD)) {
+                        rc.takeAnchor(ally.getLocation(), Anchor.STANDARD);
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 }

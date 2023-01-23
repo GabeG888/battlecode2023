@@ -1,6 +1,4 @@
-package v4shell;
-
-import battlecode.common.ResourceType;
+package v4;
 
 public class Assignment {
 
