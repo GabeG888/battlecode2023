@@ -59,7 +59,7 @@ public class Headquarters {
         }
         while(rc.isActionReady()) {
             if (rc.getResourceAmount(ResourceType.ADAMANTIUM) < 50) return spawned;
-            if(State.getState(rc) == State.COMPLETE_CONTROL && rc.getResourceAmount(ResourceType.ADAMANTIUM) < 101) return spawned;
+            if(State.getState(rc) == State.COMPLETE_CONTROL && rc.getResourceAmount(ResourceType.ADAMANTIUM) < 150) return spawned;
 
             Direction[] shuffled = directions.clone();
             Collections.shuffle(Arrays.asList(shuffled));
@@ -100,7 +100,7 @@ public class Headquarters {
     static void spawnLaunchers(RobotController rc) throws GameActionException {
         while(rc.isActionReady()) {
             if (rc.getResourceAmount(ResourceType.MANA) < 60) return;
-            if(State.getState(rc) == State.COMPLETE_CONTROL && rc.getResourceAmount(ResourceType.MANA) < 101) return;
+            if(State.getState(rc) == State.COMPLETE_CONTROL && rc.getResourceAmount(ResourceType.MANA) < 160) return;
             MapLocation bestSpawn = null;
             int bestDist = 10000;
             for(MapInfo mi : rc.senseNearbyMapInfos(9)) {

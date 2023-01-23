@@ -31,11 +31,11 @@ public class Carrier {
             Pathfinding.navigateAwayFrom(rc, myHQ);
             turnsAlive++;
         }
-
+        depositResources(rc);
         if(anchorStuff(rc)) return;
 
         collectResources(rc);
-        depositResources(rc);
+
         recordWells(rc);
 
         boolean moved = false;
@@ -57,7 +57,7 @@ public class Carrier {
         depositResources(rc);
         recordWells(rc);
 
-        if (myResource != null && rc.getResourceAmount(myResource) > 36) {
+        if (myResource != null && rc.getResourceAmount(myResource) > 38) {
             Pathfinding.navigateToLocationBug(rc, myHQ);
         }
         else if(myWell != null) {
@@ -216,6 +216,8 @@ public class Carrier {
                     Pathfinding.navigateToLocationBug(rc, bestLoc);
                     return true;
                 }
+                return Pathfinding.navigateRandomly(rc);
+
             }
             RobotInfo[] allies = rc.senseNearbyRobots(1000, rc.getTeam());
             for(RobotInfo ally : allies) {
