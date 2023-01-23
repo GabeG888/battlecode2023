@@ -155,6 +155,22 @@ public class Launcher {
         return false;
     }
 
+    static void attackClouds(RobotController rc) throws GameActionException {
+        MapLocation myLoc = rc.getLocation();
+        MapLocation[] clouds = rc.senseNearbyCloudLocations();
+        Arrays.sort(clouds, Comparator.comparingInt((MapLocation x) -> x.distanceSquaredTo(target)));
+        for(MapLocation cloud : clouds) {
+            if(myLoc.distanceSquaredTo(cloud) > 4 && rc.canAttack(cloud)) rc.attack(cloud);
+        }
+
+        if(!rc.senseCloud(myLoc)) return;
+        MapLocation[] locs = rc.getAllLocationsWithinRadiusSquared(myLoc, 16);
+        Arrays.sort(locs, Comparator.comparingInt((MapLocation x) -> x.distanceSquaredTo(target)));
+        for(MapLocation loc : locs) {
+            if(myLoc.distanceSquaredTo(loc) > 4 && rc.canAttack(loc)) rc.attack(loc);
+        }
+    }
+
     static boolean camping;
     static void run(RobotController rc) throws GameActionException {
         RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
@@ -206,6 +222,6 @@ public class Launcher {
             }
         }
 
-
+        attackClouds(rc);
     }
 }
