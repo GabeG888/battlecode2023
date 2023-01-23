@@ -119,6 +119,42 @@ public class Headquarters {
         }
     }
 
+    static void acquireTarget(RobotController rc) throws GameActionException {
+        int symmetry = MapStore.possibleSymmetry;
+        int bestDist = 10000;
+
+        for(int i = 0 ; i < GameConstants.MAX_STARTING_HEADQUARTERS; i++) {
+            int encoded = rc.readSharedArray(i) - 1;
+            if(encoded == -1) return;
+            int x = encoded / 60, y = encoded % 60;
+
+            if((symmetry & MapStore.LEFTRIGHT) > 0) {
+                MapLocation loc = new MapLocation(rc.getMapWidth() - 1 - x, y);
+                int dist = rc.getLocation().distanceSquaredTo(loc);
+                if(dist < bestDist) {
+                    target = loc;
+                    bestDist = dist;
+                }
+            }
+            if((symmetry & MapStore.UPDOWN) > 0) {
+                MapLocation loc = new MapLocation(x, rc.getMapHeight() - 1 - y);
+                int dist = rc.getLocation().distanceSquaredTo(loc);
+                if(dist < bestDist) {
+                    target = loc;
+                    bestDist = dist;
+                }
+            }
+            if((symmetry & MapStore.ROTATIONAL) > 0) {
+                MapLocation loc = new MapLocation(rc.getMapWidth() - 1 - x, rc.getMapHeight() - 1 - y);
+                int dist = rc.getLocation().distanceSquaredTo(loc);
+                if(dist < bestDist) {
+                    target = loc;
+                    bestDist = dist;
+                }
+            }
+        }
+    }
+
     static MapLocation target = null;
     public static void run(RobotController rc) throws GameActionException {
         if(rc.getRoundNum() == 1) {
@@ -126,42 +162,18 @@ public class Headquarters {
             detectWells(rc);
             target = new MapLocation(rc.getMapWidth() / 2, rc.getMapHeight() / 2);
         }
-        if(rc.getRoundNum() == 2 && rc.readSharedArray(63) == 0) MapStore.computeInitialSymmetry(rc);
+        if(rc.getRoundNum() == 2 && rc.readSharedArray(63) == 0) rc.writeSharedArray(63, 7);
         if(rc.getRoundNum() == 3)  {
-            int bestDist = 10000;
-            int symmetry = rc.readSharedArray(63);
-            for(int i = 0 ; i < GameConstants.MAX_STARTING_HEADQUARTERS; i++) {
-                int encoded = rc.readSharedArray(i) - 1;
-                if(encoded == -1) return;
-                int x = encoded / 60, y = encoded % 60;
-
-                if((symmetry & MapStore.LEFTRIGHT) > 0) {
-                    MapLocation loc = new MapLocation(rc.getMapWidth() - 1 - x, y);
-                    int dist = rc.getLocation().distanceSquaredTo(loc);
-                    if(dist < bestDist) {
-                        target = loc;
-                        bestDist = dist;
-                    }
-                }
-                if((symmetry & MapStore.UPDOWN) > 0) {
-                    MapLocation loc = new MapLocation(x, rc.getMapHeight() - 1 - y);
-                    int dist = rc.getLocation().distanceSquaredTo(loc);
-                    if(dist < bestDist) {
-                        target = loc;
-                        bestDist = dist;
-                    }
-                }
-                if((symmetry & MapStore.ROTATIONAL) > 0) {
-                    MapLocation loc = new MapLocation(rc.getMapWidth() - 1 - x, rc.getMapHeight() - 1 - y);
-                    int dist = rc.getLocation().distanceSquaredTo(loc);
-                    if(dist < bestDist) {
-                        target = loc;
-                        bestDist = dist;
-                    }
-                }
-            }
+            MapStore.computeInitialSymmetry(rc);
+            acquireTarget(rc);
         }
-        rc.setIndicatorString(State.getState(rc).toString());
+
+        if(MapStore.possibleSymmetry != rc.readSharedArray(63)) {
+            MapStore.possibleSymmetry = rc.readSharedArray(63);
+            acquireTarget(rc);
+        }
+
+        rc.setIndicatorString(State.getState(rc).toString() + "; Symmetry: " + rc.readSharedArray(63));
 
         if(State.getState(rc) == State.COMPLETE_CONTROL) {
             if(rc.canBuildAnchor(Anchor.STANDARD)) {
@@ -252,7 +264,7 @@ public class Headquarters {
                 }
             }
         }
-        System.out.println("SPAWNED: " + lastSpawn + "; ADAM MINERS: " + adamMiners + "; TOTALS: " + totalSpawns + "/" + totalAdamMiners);
+        //System.out.println("SPAWNED: " + lastSpawn + "; ADAM MINERS: " + adamMiners + "; TOTALS: " + totalSpawns + "/" + totalAdamMiners);
 
     }
 }

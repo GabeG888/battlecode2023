@@ -176,6 +176,11 @@ public class Launcher {
         RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
         RobotInfo[] allies = rc.senseNearbyRobots(1000, rc.getTeam());
 
+        if(possibleSymmetry != rc.readSharedArray(63)) {
+            possibleSymmetry &= rc.readSharedArray(63);
+            acquireTarget(rc);
+        }
+
         if(target == null) {
             initPotentialHQLocs(rc);
             acquireTarget(rc);
@@ -223,5 +228,9 @@ public class Launcher {
         }
 
         attackClouds(rc);
+
+        if(rc.canWriteSharedArray(0,0)) {
+            rc.writeSharedArray(63, possibleSymmetry & rc.readSharedArray(63));
+        }
     }
 }

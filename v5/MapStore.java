@@ -63,7 +63,7 @@ public class MapStore {
         return (possibleSymmetry == ROTATIONAL || possibleSymmetry == UPDOWN || possibleSymmetry == LEFTRIGHT);
     }
 
-    public static boolean computeInitialSymmetry(RobotController rc) throws GameActionException {
+    public static void computeInitialSymmetry(RobotController rc) throws GameActionException {
         int i = 0;
         int hy = rc.getMapHeight()/2;
         int hx = rc.getMapWidth()/2;
@@ -83,8 +83,6 @@ public class MapStore {
 
         if(!right && !left) possibleSymmetry &= ~LEFTRIGHT;
         else if(!up && !down) possibleSymmetry &= ~UPDOWN;
-        if(rc.readSharedArray(63) == 0)rc.writeSharedArray(63, possibleSymmetry);
-        return (possibleSymmetry == ROTATIONAL || possibleSymmetry == UPDOWN || possibleSymmetry == LEFTRIGHT);
     }
 }
 class CustomMapInfo {
