@@ -57,9 +57,9 @@ public class Headquarters {
         for(int i = 0; i < enemies.length; i++) {
             enemyLocs[i] = enemies[i].getLocation();
         }
-
         while(rc.isActionReady()) {
             if (rc.getResourceAmount(ResourceType.ADAMANTIUM) < 50) return spawned;
+            if(State.getState(rc) == State.COMPLETE_CONTROL && rc.getResourceAmount(ResourceType.ADAMANTIUM) < 101) return spawned;
 
             Direction[] shuffled = directions.clone();
             Collections.shuffle(Arrays.asList(shuffled));
@@ -67,20 +67,28 @@ public class Headquarters {
             MapLocation bestLoc = null;
             int bestEnemies = 99;
 
-            for (Direction direction : shuffled) {
-                MapLocation newLoc = rc.getLocation().add(direction).add(direction);
-                if (rc.canBuildRobot(RobotType.CARRIER, newLoc)) {
+            int spawnable = 0;
+            int filled = 0;
+            for(MapInfo mi : rc.senseNearbyMapInfos(9)) {
+                RobotInfo there = rc.senseRobotAtLocation(mi.getMapLocation());
+                if(mi.isPassable()) {
+                    spawnable ++;
+                    if(there != null && there.getTeam() == rc.getTeam() && there.getType() == RobotType.CARRIER) {
+                        filled++;
+                    }
+                }
+                if(rc.canBuildRobot(RobotType.CARRIER, mi.getMapLocation())) {
                     int enemiesNearby = 0;
                     for(MapLocation enemyLoc : enemyLocs) {
-                        if(enemyLoc.distanceSquaredTo(newLoc) <= 16) enemiesNearby++;
+                        if(enemyLoc.distanceSquaredTo(mi.getMapLocation()) <= 16) enemiesNearby++;
                     }
                     if(enemiesNearby < bestEnemies) {
-                        bestLoc = newLoc;
                         bestEnemies = enemiesNearby;
+                        bestLoc = mi.getMapLocation();
                     }
                 }
             }
-
+            if(filled > spawnable / 2) return spawned;
             if(bestLoc != null) {
                 rc.buildRobot(RobotType.CARRIER, bestLoc);
                 spawned++;
@@ -92,7 +100,7 @@ public class Headquarters {
     static void spawnLaunchers(RobotController rc) throws GameActionException {
         while(rc.isActionReady()) {
             if (rc.getResourceAmount(ResourceType.MANA) < 60) return;
-
+            if(State.getState(rc) == State.COMPLETE_CONTROL && rc.getResourceAmount(ResourceType.MANA) < 101) return;
             MapLocation bestSpawn = null;
             int bestDist = 10000;
             for(MapInfo mi : rc.senseNearbyMapInfos(9)) {
@@ -158,8 +166,8 @@ public class Headquarters {
             if(rc.canBuildAnchor(Anchor.STANDARD)) {
                 rc.buildAnchor(Anchor.STANDARD);
             }
-            if(rc.getResourceAmount(ResourceType.MANA) > 400)
-                spawnLaunchers(rc);
+            spawnLaunchers(rc);
+            spawnCarriers(rc);
             return;
         }
 
