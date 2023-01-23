@@ -1,7 +1,6 @@
 package v5;
 
 import battlecode.common.*;
-import carrierTest.Assignment;
 
 import java.util.*;
 
