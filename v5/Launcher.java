@@ -111,6 +111,7 @@ public class Launcher {
         }
         return false;
     }
+
     static boolean maintainDistanceAfterFiring(RobotController rc) throws GameActionException {
         RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
         MapLocation myLoc = rc.getLocation();
@@ -130,18 +131,27 @@ public class Launcher {
         }
         return false;
     }
-    static boolean surroundHQ(RobotController rc) throws GameActionException {
 
+    static boolean surroundHQ(RobotController rc) throws GameActionException {
         if(target.distanceSquaredTo(rc.getLocation()) <= 18) {
             if(target.distanceSquaredTo(rc.getLocation()) <= 9)
                 Pathfinding.navigateAwayFrom(rc, target);
             else {
-                Direction targetDirection = rc.getLocation().directionTo(target).rotateRight().rotateRight();
-                if(rc.canMove(targetDirection)) rc.move(targetDirection);
+                RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
+                for(RobotInfo enemy : enemies) {
+                    if(enemy.getType() == RobotType.LAUNCHER) return true;
+                }
+
+                Direction targetDirection = rc.getLocation().directionTo(target);
+                for(int i = 0; i < 3; i++) {
+                    MapLocation myLoc = rc.getLocation();
+                    targetDirection = targetDirection.rotateRight();
+                    int distance = myLoc.add(targetDirection).distanceSquaredTo(target);
+                    if(distance < 21 && distance > 9 && rc.canMove(targetDirection)) rc.move(targetDirection);
+                }
             }
             return true;
         }
-
         return false;
     }
 
