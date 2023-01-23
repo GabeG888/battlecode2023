@@ -145,7 +145,7 @@ public class Pathfinding {
             for (int i = 0; i < 8; i++) {
                 MapLocation newLoc = myLoc.add(direction);
 
-                if(!rc.onTheMap(newLoc) || !rc.sensePassability(newLoc)) {
+                if(!rc.onTheMap(newLoc) || !rc.canSenseLocation(newLoc) || !rc.sensePassability(newLoc)) {
                     direction = direction.rotateRight();
                     continue;
                 }
@@ -158,7 +158,7 @@ public class Pathfinding {
 
                 RobotInfo robotAtLoc = rc.senseRobotAtLocation(myLoc.add(direction));
 
-                if (canMove(rc, direction)) {
+                if (canMove(rc, direction) && rc.canMove(direction)) {
                     //rc.setIndicatorString(String.valueOf(direction));
                     rc.move(direction);
                     lastDirection = direction;

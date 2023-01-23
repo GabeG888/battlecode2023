@@ -2,6 +2,7 @@ package v5;
 
 import battlecode.common.*;
 
+import java.awt.*;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.*;
@@ -181,6 +182,18 @@ public class Launcher {
             moved = maintainDistance(rc);
             if(!moved) Pathfinding.navigateToLocationBug(rc, target);
             attackNearby(rc);
+
+            allies = rc.senseNearbyRobots(1000, rc.getTeam());
+            int launchersSurrounding = 0;
+            for(RobotInfo ally : allies) {
+                if(ally.getType() == RobotType.LAUNCHER && ally.getLocation().distanceSquaredTo(target) <= 18) {
+                    launchersSurrounding++;
+                }
+            }
+            if(launchersSurrounding > 5 && skippedLocs.size() < leftrightLocs.size() - 1) {
+                skippedLocs.add(target);
+                acquireTarget(rc);
+            }
         }
 
 
