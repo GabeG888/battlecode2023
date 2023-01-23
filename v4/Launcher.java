@@ -1,7 +1,6 @@
 package v4;
 
 import battlecode.common.*;
-import v3.RobotPlayer;
 
 import java.util.Arrays;
 import java.util.*;
