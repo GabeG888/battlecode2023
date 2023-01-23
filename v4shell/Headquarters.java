@@ -110,7 +110,7 @@ public class Headquarters {
         }
         postAssignments(rc);
 
-        spawnLaunchers(rc);
+        //spawnLaunchers(rc);
         int spawned = spawnCarriers(rc);
         if(rc.getRoundNum() == 2) spawned += 2;
 
@@ -128,9 +128,9 @@ public class Headquarters {
                 manaWells.add(well);
         }
         Collections.sort(adamWells,
-                Comparator.comparingInt(x -> assigned.get(x.getLoc())) );
+                Comparator.comparingInt(x -> assigned.getOrDefault(x.getLoc(), 0)) );
         Collections.sort(manaWells,
-                Comparator.comparingInt(x -> assigned.get(x.getLoc())) );
+                Comparator.comparingInt(x -> assigned.getOrDefault(x.getLoc(), 0)) );
         queuedAdamWells = adamWells;
         queuedManaWells = manaWells;
         lastSpawn = spawned;
@@ -153,6 +153,7 @@ public class Headquarters {
                 if(rc.readSharedArray(i) == 0) {
                     Well well = queuedManaWells.get(0);
                     rc.writeSharedArray(i, Assignment.encodeAssignment(well.wellIdx, hqIdx, lastSpawn - scouts));
+                    assigned.compute(well.getLoc(), (k, o) -> (o == null ? 1 : o + 1));
                 }
             }
         }
@@ -161,6 +162,7 @@ public class Headquarters {
                 if(rc.readSharedArray(i) == 0) {
                     Well well = queuedAdamWells.get(0);
                     rc.writeSharedArray(i, Assignment.encodeAssignment(well.wellIdx, hqIdx, lastSpawn - scouts));
+                    assigned.compute(well.getLoc(), (k, o) -> (o == null ? 1 : o + 1));
                 }
             }
         }

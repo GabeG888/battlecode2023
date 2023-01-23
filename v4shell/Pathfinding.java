@@ -133,7 +133,7 @@ public class Pathfinding {
             }
             if (bestDirection != Direction.CENTER) {
                 if (canMove(rc, bestDirection)) {
-                    rc.setIndicatorString(String.valueOf(bestDirection));
+                    //rc.setIndicatorString(String.valueOf(bestDirection));
                     rc.move(bestDirection);
                     lastDirection = bestDirection.rotateRight().rotateRight();
                     turnsWaited = 0;
@@ -159,7 +159,7 @@ public class Pathfinding {
                 RobotInfo robotAtLoc = rc.senseRobotAtLocation(myLoc.add(direction));
 
                 if (canMove(rc, direction)) {
-                    rc.setIndicatorString(String.valueOf(direction));
+                    //rc.setIndicatorString(String.valueOf(direction));
                     rc.move(direction);
                     lastDirection = direction;
                     turnsWaited = 0;

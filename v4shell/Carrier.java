@@ -69,6 +69,7 @@ public class Carrier {
 
         if(moved)
             MapStore.updateMap(rc);
+        if(myWell != null)                 rc.setIndicatorString(myWell.toString() + " " + myResource.toString());
     }
 
     static void receiveAssignment(RobotController rc) throws GameActionException {
@@ -107,6 +108,7 @@ public class Carrier {
         }
     }
 
+
     static void depositResources(RobotController rc) throws GameActionException {
         if(myResource == null) return;
         RobotInfo[] robots = rc.senseNearbyRobots(1000, rc.getTeam());
@@ -118,5 +120,8 @@ public class Carrier {
         }
 
         //TODO: Inform HQ of well(s) that it discovered
+        if(myWell != null && rc.canWriteSharedArray(0,0) && !Communicator.alreadyRecorded(rc, myWell)) {
+            Communicator.storeWellInfo(rc, myWell.x, myWell.y, myResource);
+        }
     }
 }
