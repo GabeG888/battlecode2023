@@ -245,7 +245,7 @@ public class Headquarters {
             for(int i = 4; i <= 23; i++) {
                 if(rc.readSharedArray(i) == 0) {
                     Well well = queuedManaWells.get(0);
-                    rc.writeSharedArray(i, carrierTest.Assignment.encodeAssignment(well.wellIdx, hqIdx, lastSpawn - adamMiners));
+                    rc.writeSharedArray(i, Assignment.encodeAssignment(well.wellIdx, hqIdx, lastSpawn - adamMiners));
                     assigned.compute(well.getLoc(), (k, o) -> (o == null ? 1 : o + 1));
                     break;
                 }
