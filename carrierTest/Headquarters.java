@@ -1,7 +1,6 @@
-package v5;
+package carrierTest;
 
 import battlecode.common.*;
-import carrierTest.Assignment;
 
 import java.util.*;
 
@@ -98,27 +97,6 @@ public class Headquarters {
         return spawned;
     }
 
-    static void spawnLaunchers(RobotController rc) throws GameActionException {
-        while(rc.isActionReady()) {
-            if (rc.getResourceAmount(ResourceType.MANA) < 60) return;
-            if(State.getState(rc) == State.COMPLETE_CONTROL && rc.getResourceAmount(ResourceType.MANA) < 160) return;
-            MapLocation bestSpawn = null;
-            int bestDist = 10000;
-            for(MapInfo mi : rc.senseNearbyMapInfos(9)) {
-                if(rc.canBuildRobot(RobotType.LAUNCHER, mi.getMapLocation())) {
-                    int dist = mi.getMapLocation().distanceSquaredTo(target);
-                    if(dist < bestDist) {
-                        bestDist = dist;
-                        bestSpawn = mi.getMapLocation();
-                    }
-                }
-            }
-
-            if(bestSpawn != null) rc.buildRobot(RobotType.LAUNCHER, bestSpawn);
-            else return;
-        }
-    }
-
     static MapLocation target = null;
     public static void run(RobotController rc) throws GameActionException {
         if(rc.getRoundNum() == 1) {
@@ -167,7 +145,7 @@ public class Headquarters {
             if(rc.canBuildAnchor(Anchor.STANDARD)) {
                 rc.buildAnchor(Anchor.STANDARD);
             }
-            spawnLaunchers(rc);
+            //spawnLaunchers(rc);
             spawnCarriers(rc);
             return;
         }
@@ -181,9 +159,9 @@ public class Headquarters {
         postAssignments(rc);
 
         //Spawn stuff
-        spawnLaunchers(rc);
+        //spawnLaunchers(rc);
         int spawned = spawnCarriers(rc);
-        //if(rc.getRoundNum() == 2) spawned += 2;
+        //if(rc.getRoundNum() == 2) spawned += 4;
 
         //Queue assignments
         ArrayList<Well> manaWells = new ArrayList<>();
@@ -207,7 +185,7 @@ public class Headquarters {
         queuedManaWells = manaWells;
         lastSpawn = spawned;
 
-        //if(rc.getRoundNum() == 100) rc.resign();
+        if(rc.getRoundNum() == 300) rc.resign();
     }
 
     static int lastSpawn = 0;
@@ -234,7 +212,7 @@ public class Headquarters {
             for(int i = 4; i <= 23; i++) {
                 if(rc.readSharedArray(i) == 0) {
                     Well well = queuedManaWells.get(0);
-                    rc.writeSharedArray(i, carrierTest.Assignment.encodeAssignment(well.wellIdx, hqIdx, lastSpawn - adamMiners));
+                    rc.writeSharedArray(i, Assignment.encodeAssignment(well.wellIdx, hqIdx, lastSpawn - adamMiners));
                     assigned.compute(well.getLoc(), (k, o) -> (o == null ? 1 : o + 1));
                     break;
                 }
