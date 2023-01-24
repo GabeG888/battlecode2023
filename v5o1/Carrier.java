@@ -59,6 +59,7 @@ public class Carrier {
 
         if (myResource != null && rc.getResourceAmount(myResource) > 38) {
             Pathfinding.navigateToLocationBug(rc, myHQ);
+            return;
         }
         else if(myWell != null) {
             moved = navigateToWell(rc);
@@ -97,7 +98,7 @@ public class Carrier {
 
         //if(moved)
         //    MapStore.updateMap(rc);
-        //if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString());
+        if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString());
     }
 
     static boolean navigateToWell(RobotController rc) throws GameActionException {
@@ -123,8 +124,12 @@ public class Carrier {
                     return false;
                 }
                 if(bestSpot != null) {
-                    rc.setIndicatorString(bestSpot.toString());
-                    return Pathfinding.navigateToLocationFuzzy(rc, bestSpot);
+                   // rc.setIndicatorString(bestSpot.toString());
+                    if(bestDist <= 2 && rc.canMove(rc.getLocation().directionTo(bestSpot))) {
+                        rc.move(rc.getLocation().directionTo(bestSpot));
+                        return true;
+                    }
+                    return Pathfinding.navigateToLocationBug(rc, bestSpot);
                 }
             }
             return Pathfinding.navigateToLocationBug(rc, myWell);
