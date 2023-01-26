@@ -72,37 +72,34 @@ public class Pathfinding {
 
     public static boolean navigateToLocationFuzzy(RobotController rc, MapLocation targetLoc) throws GameActionException {
         bestDistance = 999999;
+        MapLocation myLoc = rc.getLocation();
+        if(rc.canSenseLocation(targetLoc)) {
+            if(!rc.sensePassability(targetLoc)) return false;
+        }
 
-        while (rc.isMovementReady()) {
-            MapLocation myLoc = rc.getLocation();
-            if(rc.canSenseLocation(targetLoc)) {
-                if(!rc.sensePassability(targetLoc)) return false;
-            }
-
-            if(canMove(rc, myLoc.directionTo(targetLoc))) {
-                rc.move(myLoc.directionTo(targetLoc));
-            }
-            else if(canMove(rc, myLoc.directionTo(targetLoc).rotateLeft())){
-                rc.move(myLoc.directionTo(targetLoc).rotateLeft());
-            }
-            else if(canMove(rc, myLoc.directionTo(targetLoc).rotateRight())){
-                rc.move(myLoc.directionTo(targetLoc).rotateRight());
-            }
-            else if(canMove(rc, myLoc.directionTo(targetLoc).rotateLeft().rotateLeft())){
-                rc.move(myLoc.directionTo(targetLoc).rotateLeft().rotateLeft());
-            }
-            else if(canMove(rc, myLoc.directionTo(targetLoc).rotateRight().rotateRight())){
-                rc.move(myLoc.directionTo(targetLoc).rotateRight().rotateRight());
-            }
-            else if(canMove(rc, myLoc.directionTo(targetLoc).rotateLeft().rotateLeft().rotateLeft())){
-                rc.move(myLoc.directionTo(targetLoc).rotateLeft().rotateLeft().rotateLeft());
-            }
-            else if(canMove(rc, myLoc.directionTo(targetLoc).rotateRight().rotateRight().rotateRight())){
-                rc.move(myLoc.directionTo(targetLoc).rotateRight().rotateRight().rotateRight());
-            }
-            else if(canMove(rc, myLoc.directionTo(targetLoc).rotateRight().rotateRight().rotateRight().rotateRight())){
-                rc.move(myLoc.directionTo(targetLoc).rotateRight().rotateRight().rotateRight().rotateRight());
-            }
+        if(canMove(rc, myLoc.directionTo(targetLoc))) {
+            rc.move(myLoc.directionTo(targetLoc));
+        }
+        else if(canMove(rc, myLoc.directionTo(targetLoc).rotateLeft())){
+            rc.move(myLoc.directionTo(targetLoc).rotateLeft());
+        }
+        else if(canMove(rc, myLoc.directionTo(targetLoc).rotateRight())){
+            rc.move(myLoc.directionTo(targetLoc).rotateRight());
+        }
+        else if(canMove(rc, myLoc.directionTo(targetLoc).rotateLeft().rotateLeft())){
+            rc.move(myLoc.directionTo(targetLoc).rotateLeft().rotateLeft());
+        }
+        else if(canMove(rc, myLoc.directionTo(targetLoc).rotateRight().rotateRight())){
+            rc.move(myLoc.directionTo(targetLoc).rotateRight().rotateRight());
+        }
+        else if(canMove(rc, myLoc.directionTo(targetLoc).rotateLeft().rotateLeft().rotateLeft())){
+            rc.move(myLoc.directionTo(targetLoc).rotateLeft().rotateLeft().rotateLeft());
+        }
+        else if(canMove(rc, myLoc.directionTo(targetLoc).rotateRight().rotateRight().rotateRight())){
+            rc.move(myLoc.directionTo(targetLoc).rotateRight().rotateRight().rotateRight());
+        }
+        else if(canMove(rc, myLoc.directionTo(targetLoc).rotateRight().rotateRight().rotateRight().rotateRight())){
+            rc.move(myLoc.directionTo(targetLoc).rotateRight().rotateRight().rotateRight().rotateRight());
         }
         return true;
     }
@@ -136,10 +133,10 @@ public class Pathfinding {
             }
             if (bestDirection != Direction.CENTER) {
                 if (canMove(rc, bestDirection)) {
+                    //rc.setIndicatorString(String.valueOf(bestDirection));
                     rc.move(bestDirection);
                     lastDirection = bestDirection.rotateRight().rotateRight();
                     turnsWaited = 0;
-                    continue;
                 }
             }
 
@@ -162,10 +159,11 @@ public class Pathfinding {
                 RobotInfo robotAtLoc = rc.senseRobotAtLocation(myLoc.add(direction));
 
                 if (canMove(rc, direction) && rc.canMove(direction)) {
+                    //rc.setIndicatorString(String.valueOf(direction));
                     rc.move(direction);
                     lastDirection = direction;
                     turnsWaited = 0;
-                    continue;
+                    break;
                 } else if (rc.onTheMap(myLoc.add(direction)) && robotAtLoc != null &&
                         robotAtLoc.getType() == RobotType.HEADQUARTERS || turnsWaited > turnsToWait) {
                     bestDistance = 999999;
@@ -178,6 +176,7 @@ public class Pathfinding {
             bestDistance = Math.min(bestDistance, rc.getLocation().distanceSquaredTo(targetLoc));
         }
 
+        //rc.setIndicatorString(String.valueOf(bestDistance));
         return true;
     }
 

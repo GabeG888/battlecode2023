@@ -59,6 +59,7 @@ public class Carrier {
 
         if (myResource != null && rc.getResourceAmount(myResource) > 38) {
             Pathfinding.navigateToLocationBug(rc, myHQ);
+            return;
         }
         else if(myWell != null) {
             moved = navigateToWell(rc);
@@ -89,36 +90,46 @@ public class Carrier {
         if(myWell != null) {
             moved = navigateToWell(rc);
         }
-        else moved = Pathfinding.navigateRandomly(rc);
+        if(myWell == null) {
+            moved = Pathfinding.navigateRandomly(rc);
+        }
 
         recordWells(rc);
 
         //if(moved)
         //    MapStore.updateMap(rc);
-        //if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString());
+        if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString());
     }
 
     static boolean navigateToWell(RobotController rc) throws GameActionException {
         if(myWell.distanceSquaredTo(rc.getLocation()) > 2) {
             if(rc.canSenseLocation(myWell)) {
+                boolean full = true;
                 MapLocation bestSpot = null;
                 int bestDist = 10000;
                 for(Direction d : directions) {
                     MapLocation spot = myWell.add(d);
+                    if(!rc.canSenseLocation(spot)) full = false;
                     if(rc.canSenseLocation(spot) && rc.sensePassability(spot) && rc.senseRobotAtLocation(spot) == null) {
+                        full = false;
                         if(spot.distanceSquaredTo(rc.getLocation()) < bestDist) {
                             bestSpot = spot;
                             bestDist = spot.distanceSquaredTo(rc.getLocation());
                         }
                     }
                 }
+                if(full) {
+                    myWell = null;
+                    myResource = null;
+                    return false;
+                }
                 if(bestSpot != null) {
-                    rc.setIndicatorString(bestSpot.toString());
+                   // rc.setIndicatorString(bestSpot.toString());
                     if(bestDist <= 2 && rc.canMove(rc.getLocation().directionTo(bestSpot))) {
                         rc.move(rc.getLocation().directionTo(bestSpot));
                         return true;
                     }
-                    return Pathfinding.navigateToLocationFuzzy(rc, bestSpot);
+                    return Pathfinding.navigateToLocationBug(rc, bestSpot);
                 }
             }
             return Pathfinding.navigateToLocationBug(rc, myWell);
