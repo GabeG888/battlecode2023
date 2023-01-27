@@ -41,12 +41,24 @@ public class Launcher {
 
     static Set<MapLocation> skippedLocs = new HashSet<>();
     static void acquireTarget(RobotController rc) throws GameActionException {
+        RobotInfo[] allies = rc.senseNearbyRobots(1000, rc.getTeam());
+        int lowestID = rc.getID();
+        RobotInfo leader = rc.senseRobot(lowestID);
+        for(RobotInfo ally : allies) {
+            if(ally.getID() < lowestID) {
+                lowestID = ally.getID();
+                leader = ally;
+            }
+        }
+
+        MapLocation startLoc = leader.getLocation();
+
         int bestDist = 10000;
 
         if((possibleSymmetry & MapStore.LEFTRIGHT) > 0) {
             for(MapLocation loc : leftrightLocs) {
                 if(skippedLocs.contains(loc)) continue;
-                int dist = rc.getLocation().distanceSquaredTo(loc);
+                int dist = startLoc.distanceSquaredTo(loc);
                 if(dist < bestDist) {
                     target = loc;
                     bestDist = dist;
@@ -57,7 +69,7 @@ public class Launcher {
         if((possibleSymmetry & MapStore.UPDOWN) > 0) {
             for(MapLocation loc : updownLocs) {
                 if(skippedLocs.contains(loc)) continue;
-                int dist = rc.getLocation().distanceSquaredTo(loc);
+                int dist = startLoc.distanceSquaredTo(loc);
                 if(dist < bestDist) {
                     target = loc;
                     bestDist = dist;
@@ -68,7 +80,7 @@ public class Launcher {
         if((possibleSymmetry & MapStore.ROTATIONAL) > 0) {
             for(MapLocation loc : rotationalLocs) {
                 if(skippedLocs.contains(loc)) continue;
-                int dist = rc.getLocation().distanceSquaredTo(loc);
+                int dist = startLoc.distanceSquaredTo(loc);
                 if(dist < bestDist) {
                     target = loc;
                     bestDist = dist;
@@ -155,10 +167,27 @@ public class Launcher {
         return false;
     }
 
+    static int getWallsAround(RobotController rc, MapLocation loc) throws GameActionException {
+        int walls = 0;
+        for(Direction direction : Direction.allDirections()) {
+            if(rc.canSenseLocation(loc.add(direction)) && !rc.sensePassability(loc.add(direction))) {
+                walls++;
+            }
+        }
+        return walls;
+    }
+
     static void attackClouds(RobotController rc) throws GameActionException {
         MapLocation myLoc = rc.getLocation();
         MapLocation[] clouds = rc.senseNearbyCloudLocations();
-        Arrays.sort(clouds, Comparator.comparingInt((MapLocation x) -> x.distanceSquaredTo(target)));
+        Arrays.sort(clouds, Comparator.comparingInt((MapLocation x) -> {
+            try {
+                return -getWallsAround(rc, x);
+            } catch (GameActionException e) {
+                e.printStackTrace();
+                return 0;
+            }
+        }).thenComparingInt((MapLocation x) -> x.distanceSquaredTo(target)));
         for(MapLocation cloud : clouds) {
             if(myLoc.distanceSquaredTo(cloud) > 4 && rc.canAttack(cloud)) rc.attack(cloud);
         }

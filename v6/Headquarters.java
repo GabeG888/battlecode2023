@@ -156,6 +156,20 @@ public class Headquarters {
 
     static MapLocation target = null;
     public static void run(RobotController rc) throws GameActionException {
+        int enemyLaunchers = 0;
+        RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
+        for(RobotInfo enemy : enemies) {
+            if(enemy.getType() == RobotType.LAUNCHER) enemyLaunchers++;
+        }
+
+        int allyLaunchers = 0;
+        RobotInfo[] allies = rc.senseNearbyRobots(1000, rc.getTeam());
+        for(RobotInfo ally : allies) {
+            if(ally.getType() == RobotType.LAUNCHER) allyLaunchers++;
+        }
+
+        //if(enemyLaunchers - allyLaunchers > 10) rc.disintegrate();
+
         if(rc.getRoundNum() == 1) {
             storeHQLoc(rc);
             detectWells(rc);
@@ -175,11 +189,17 @@ public class Headquarters {
         rc.setIndicatorString(State.getState(rc).toString() + "; Symmetry: " + rc.readSharedArray(63));
 
         if(State.getState(rc) == State.COMPLETE_CONTROL) {
-            if(rc.canBuildAnchor(Anchor.STANDARD)) {
-                rc.buildAnchor(Anchor.STANDARD);
+            if(enemyLaunchers == 0) {
+                if(rc.canBuildAnchor(Anchor.STANDARD)) {
+                    rc.buildAnchor(Anchor.STANDARD);
+                }
+                spawnLaunchers(rc);
+                spawnCarriers(rc);
             }
-            spawnLaunchers(rc);
-            spawnCarriers(rc);
+            else {
+                if(rc.getResourceAmount(ResourceType.MANA) > (enemyLaunchers - allyLaunchers) * 45) spawnLaunchers(rc);
+                if(enemyLaunchers - allyLaunchers < 4) spawnCarriers(rc);
+            }
             return;
         }
 
@@ -192,8 +212,10 @@ public class Headquarters {
         postAssignments(rc);
 
         //Spawn stuff
-        spawnLaunchers(rc);
-        int spawned = spawnCarriers(rc);
+        int spawned = 0;
+        if(rc.getResourceAmount(ResourceType.MANA) > (enemyLaunchers - allyLaunchers) * 45) spawnLaunchers(rc);
+        if(enemyLaunchers - allyLaunchers < 4) spawned = spawnCarriers(rc);
+
         //if(rc.getRoundNum() == 2) spawned += 2;
 
         //Queue assignments
