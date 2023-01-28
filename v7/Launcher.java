@@ -231,6 +231,7 @@ public class Launcher {
     static boolean camping;
     static boolean hasSeenTarget;
     static boolean goingBackToHQ;
+    static int defending = 0;
     static void run(RobotController rc) throws GameActionException {
         RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
         RobotInfo[] allies = rc.senseNearbyRobots(1000, rc.getTeam());
@@ -241,6 +242,7 @@ public class Launcher {
                     myHQ = robot.getLocation();
                 }
             }
+            if(enemies.length > 0) defending = 30;
         }
 
         if(possibleSymmetry != rc.readSharedArray(63)) {
@@ -295,7 +297,11 @@ public class Launcher {
             moved = maintainDistance(rc);
             attackNearby(rc);
             if(moved) rc.setIndicatorString("Mantaining distance");
-            if(!moved && rc.getRoundNum() % 2 == 0) {
+            else if(defending > 0) {
+                Pathfinding.navigateToLocationFuzzy(rc, myHQ);
+                defending--;
+            }
+            else if(rc.getRoundNum() % 2 == 0) {
                 if(goingBackToHQ) {
                     Pathfinding.navigateToLocationBug(rc, myHQ);
                     rc.setIndicatorString("Going to HQ");
