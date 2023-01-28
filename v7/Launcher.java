@@ -93,6 +93,20 @@ public class Launcher {
         return false;
     }
 
+    static boolean attackNearbyLaunchers(RobotController rc) throws GameActionException{
+        RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
+
+        Arrays.sort(enemies, Comparator.comparingInt(Launcher::getAttackPriority).thenComparingInt(RobotInfo::getHealth));
+
+        for(RobotInfo enemy : enemies) {
+            if(rc.canAttack(enemy.getLocation()) && enemy.getType() == RobotType.LAUNCHER) {
+                rc.attack(enemy.getLocation());
+                return true;
+            }
+        }
+        return false;
+    }
+
     static boolean maintainDistance(RobotController rc) throws GameActionException {
         RobotInfo[] enemies = rc.senseNearbyRobots(20, rc.getTeam().opponent());
         RobotInfo[] allies = rc.senseNearbyRobots(20, rc.getTeam());
@@ -113,6 +127,7 @@ public class Launcher {
                 for(Direction d : Direction.allDirections()) {
                     if(myLoc.add(d).distanceSquaredTo(closest) == 16 && rc.canMove(d)) {
                         rc.move(d);
+                        Pathfinding.resetDistance();
                         return true;
                     }
                 }
@@ -121,6 +136,7 @@ public class Launcher {
                 for(Direction d : Direction.allDirections()) {
                     if(myLoc.add(d).distanceSquaredTo(closest) == 13 && rc.canMove(d)) {
                         rc.move(d);
+                        Pathfinding.resetDistance();
                         return true;
                     }
                 }
@@ -168,7 +184,10 @@ public class Launcher {
                     MapLocation myLoc = rc.getLocation();
                     targetDirection = targetDirection.rotateRight();
                     int distance = myLoc.add(targetDirection).distanceSquaredTo(target);
-                    if(distance < 21 && distance > 9 && rc.canMove(targetDirection)) rc.move(targetDirection);
+                    if(distance < 21 && distance > 9 && rc.canMove(targetDirection)) {
+                        Pathfinding.resetDistance();
+                        rc.move(targetDirection);
+                    }
                 }
             }
             return true;
@@ -258,7 +277,7 @@ public class Launcher {
 
         //rc.setIndicatorString(target.toString() + " Symmetries (possible/target): " + possibleSymmetry+"/"+targetSymmetry);
 
-        boolean attacked = attackNearby(rc);
+        boolean attacked = attackNearbyLaunchers(rc);
         boolean moved = false;
         if(attacked) {
             moved = maintainDistanceAfterFiring(rc);
@@ -274,6 +293,7 @@ public class Launcher {
 
         if(!attacked) {
             moved = maintainDistance(rc);
+            attackNearby(rc);
             if(moved) rc.setIndicatorString("Mantaining distance");
             if(!moved && rc.getRoundNum() % 2 == 0) {
                 if(goingBackToHQ) {

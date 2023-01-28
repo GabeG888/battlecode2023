@@ -27,6 +27,10 @@ public class Pathfinding {
     static int turnsToWait = 5;
     static Random rng = new Random();
 
+    static void resetDistance() {
+        bestDistance = 999999;
+    }
+
     static boolean towards(Direction d1, Direction d2) throws GameActionException {
         return (d1 == Direction.CENTER || d2 == Direction.CENTER || d1 == d2.rotateLeft() ||
                 d1 == d2.rotateRight() || d1 == d2.rotateLeft().rotateLeft() || d1 == d2.rotateRight().rotateRight());
@@ -136,6 +140,7 @@ public class Pathfinding {
     }
 
     public static boolean navigateToLocationFuzzyCardinal(RobotController rc, MapLocation targetLoc) throws GameActionException {
+        bestDistance = 999999;
         MapLocation myLoc = rc.getLocation();
         if(rc.canSenseLocation(targetLoc)) {
             if(!rc.sensePassability(targetLoc)) return false;
