@@ -180,21 +180,21 @@ public class Launcher {
     static void attackClouds(RobotController rc) throws GameActionException {
         MapLocation myLoc = rc.getLocation();
         MapLocation[] clouds = rc.senseNearbyCloudLocations();
-        Arrays.sort(clouds, Comparator.comparingInt((MapLocation x) -> {
+        /*Arrays.sort(clouds, Comparator.comparingInt((MapLocation x) -> {
             try {
                 return -getWallsAround(rc, x);
-            } catch (GameActionException e) {
+            } catch  (GameActionException e) {
                 e.printStackTrace();
                 return 0;
             }
-        }).thenComparingInt((MapLocation x) -> x.distanceSquaredTo(target)));
+        }).thenComparingInt((MapLocation x) -> x.distanceSquaredTo(target)));*/
         for(MapLocation cloud : clouds) {
             if(myLoc.distanceSquaredTo(cloud) > 4 && rc.canAttack(cloud)) rc.attack(cloud);
         }
 
         if(!rc.senseCloud(myLoc)) return;
         MapLocation[] locs = rc.getAllLocationsWithinRadiusSquared(myLoc, 16);
-        Arrays.sort(locs, Comparator.comparingInt((MapLocation x) -> x.distanceSquaredTo(target)));
+        //Arrays.sort(locs, Comparator.comparingInt((MapLocation x) -> x.distanceSquaredTo(target)));
         for(MapLocation loc : locs) {
             if(myLoc.distanceSquaredTo(loc) > 4 && rc.canAttack(loc)) rc.attack(loc);
         }
@@ -202,16 +202,25 @@ public class Launcher {
 
     static boolean camping;
     static boolean hasSeenTarget;
+    static boolean goingBackToHQ;
     static void run(RobotController rc) throws GameActionException {
         RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
         RobotInfo[] allies = rc.senseNearbyRobots(1000, rc.getTeam());
+
+        if(myHQ == null) {
+            for(RobotInfo robot : rc.senseNearbyRobots(1000, rc.getTeam())) {
+                if(robot.getType() == RobotType.HEADQUARTERS) {
+                    myHQ = robot.getLocation();
+                }
+            }
+        }
 
         if(possibleSymmetry != rc.readSharedArray(63)) {
             possibleSymmetry &= rc.readSharedArray(63);
             acquireTarget(rc);
         }
 
-        if(target == null) {
+        if(target == null && !goingBackToHQ) {
             initPotentialHQLocs(rc);
             acquireTarget(rc);
             hasSeenTarget = false;
@@ -223,6 +232,7 @@ public class Launcher {
                 possibleSymmetry &= ~targetSymmetry;
                 //System.out.println("Old target: " + target);
                 acquireTarget(rc);
+                goingBackToHQ = true;
                 hasSeenTarget = false;
                 //System.out.println("New target: " + target);
             }
@@ -231,20 +241,32 @@ public class Launcher {
                 camping = surroundHQ(rc);
             }
         }
+        if(goingBackToHQ && rc.getLocation().distanceSquaredTo(myHQ) <= 9) {
+            goingBackToHQ = false;
+            hasSeenTarget = false;
+            acquireTarget(rc);
+        }
 
         rc.setIndicatorString(target.toString() + " Symmetries (possible/target): " + possibleSymmetry+"/"+targetSymmetry);
 
         boolean attacked = attackNearby(rc);
         boolean moved = false;
         if(attacked) moved = maintainDistanceAfterFiring(rc);
+
         camping = surroundHQ(rc);
         if(camping) return;
         //if(rc.getRoundNum() >= 3) possibleSymmetry &= rc.readSharedArray(63);
 
-
         if(!attacked) {
             moved = maintainDistance(rc);
-            if(!moved) Pathfinding.navigateToLocationBug(rc, target);
+            if(!moved) {
+                if(goingBackToHQ) {
+                    Pathfinding.navigateToLocationBug(rc, myHQ);
+                }
+                else {
+                    Pathfinding.navigateToLocationBug(rc, target);
+                }
+            }
             attackNearby(rc);
 
             allies = rc.senseNearbyRobots(1000, rc.getTeam());
@@ -264,6 +286,7 @@ public class Launcher {
 
         if(rc.canWriteSharedArray(0,0)) {
             rc.writeSharedArray(63, possibleSymmetry & rc.readSharedArray(63));
+            goingBackToHQ = false;
         }
     }
 }

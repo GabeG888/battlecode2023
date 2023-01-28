@@ -36,7 +36,7 @@ public class Headquarters {
         for(WellInfo wi : rc.senseNearbyWells()) {
             MapLocation loc = wi.getMapLocation();
             ResourceType rt = wi.getResourceType();
-            Communicator.storeWellInfo(rc, loc.x, loc.y, rt);
+            Communicator.storeWellInfo(rc, loc.x, loc.y, rt, false);
         }
     }
 
@@ -57,24 +57,25 @@ public class Headquarters {
         for(int i = 0; i < enemies.length; i++) {
             enemyLocs[i] = enemies[i].getLocation();
         }
+
         while(rc.isActionReady()) {
             if (rc.getResourceAmount(ResourceType.ADAMANTIUM) < 50) return spawned;
             if(State.getState(rc) == State.COMPLETE_CONTROL && rc.getResourceAmount(ResourceType.ADAMANTIUM) < 150) return spawned;
-
-            Direction[] shuffled = directions.clone();
-            Collections.shuffle(Arrays.asList(shuffled));
 
             MapLocation bestLoc = null;
             int bestEnemies = 99;
 
             int spawnable = 0;
             int filled = 0;
+
             for(MapInfo mi : rc.senseNearbyMapInfos(9)) {
+
                 RobotInfo there = rc.senseRobotAtLocation(mi.getMapLocation());
                 if(mi.isPassable()) {
                     spawnable ++;
                     if(there != null && there.getTeam() == rc.getTeam() && there.getType() == RobotType.CARRIER) {
                         filled++;
+                        continue;
                     }
                 }
                 if(rc.canBuildRobot(RobotType.CARRIER, mi.getMapLocation())) {
@@ -87,12 +88,15 @@ public class Headquarters {
                         bestLoc = mi.getMapLocation();
                     }
                 }
+                if(bestEnemies == 0) break;
             }
+
             if(filled > spawnable / 2) return spawned;
             if(bestLoc != null) {
                 rc.buildRobot(RobotType.CARRIER, bestLoc);
                 spawned++;
             }
+            else return spawned;
         }
         return spawned;
     }
@@ -181,6 +185,7 @@ public class Headquarters {
             acquireTarget(rc);
         }
 
+
         if(MapStore.possibleSymmetry != rc.readSharedArray(63)) {
             MapStore.possibleSymmetry = rc.readSharedArray(63);
             acquireTarget(rc);
@@ -189,18 +194,22 @@ public class Headquarters {
         rc.setIndicatorString(State.getState(rc).toString() + "; Symmetry: " + rc.readSharedArray(63));
 
         if(State.getState(rc) == State.COMPLETE_CONTROL) {
+
             if(enemyLaunchers == 0) {
+
                 if(rc.canBuildAnchor(Anchor.STANDARD)) {
                     rc.buildAnchor(Anchor.STANDARD);
                 }
                 spawnLaunchers(rc);
                 spawnCarriers(rc);
+
             }
             else {
                 if(rc.getResourceAmount(ResourceType.MANA) > (enemyLaunchers - allyLaunchers) * 45) spawnLaunchers(rc);
                 if(enemyLaunchers - allyLaunchers < 4) spawnCarriers(rc);
             }
             return;
+
         }
 
         //Clear assignments list
@@ -211,33 +220,44 @@ public class Headquarters {
         }
         postAssignments(rc);
 
-        //Spawn stuff
-        int spawned = 0;
-        if(rc.getResourceAmount(ResourceType.MANA) > (enemyLaunchers - allyLaunchers) * 45) spawnLaunchers(rc);
-        if(enemyLaunchers - allyLaunchers < 4) spawned = spawnCarriers(rc);
+
+
 
         //if(rc.getRoundNum() == 2) spawned += 2;
 
         //Queue assignments
         ArrayList<Well> manaWells = new ArrayList<>();
         ArrayList<Well> adamWells = new ArrayList<>();
-
+        boolean allFull = false;
         for(int i = 62; i >= 24; i--) {
             int encoded = rc.readSharedArray(i);
             if(encoded == 0) break;
+            if(i==62)allFull = true;
             Well well = new Well(rc, i);
-
+            if(well.full) continue;
             if(well.resourceType == ResourceType.ADAMANTIUM)
                 adamWells.add(well);
             else
                 manaWells.add(well);
+            allFull = false;
         }
         Collections.sort(adamWells,
-                Comparator.comparingInt(x -> assigned.getOrDefault(x.getLoc(), 0)) );
+                Comparator.comparingInt(x -> x.getLoc().distanceSquaredTo(rc.getLocation())) );
         Collections.sort(manaWells,
-                Comparator.comparingInt(x -> assigned.getOrDefault(x.getLoc(), 0)) );
+                Comparator.comparingInt(x -> x.getLoc().distanceSquaredTo(rc.getLocation())) );
         queuedAdamWells = adamWells;
         queuedManaWells = manaWells;
+
+        //Spawn stuff
+        int spawned = 0;
+        if(rc.getResourceAmount(ResourceType.MANA) > (enemyLaunchers - allyLaunchers) * 45) {
+            spawnLaunchers(rc);
+        }
+        if(enemyLaunchers - allyLaunchers < 4 &&!allFull) {
+            spawned = spawnCarriers(rc);
+        }
+
+
         lastSpawn = spawned;
 
         //if(rc.getRoundNum() == 100) rc.resign();

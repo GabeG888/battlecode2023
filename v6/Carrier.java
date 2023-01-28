@@ -22,6 +22,8 @@ public class Carrier {
     static ResourceType myResource;
     static boolean scout = false;
     static Map<MapLocation, ResourceType> wellsSeen = new HashMap<>();
+    static boolean initialAdam = false;
+    static boolean myWellFull = false;
     static int turnsAlive = 0;
     public static void run(RobotController rc) throws GameActionException {
         if(myHQ == null) initHQ(rc);
@@ -70,17 +72,19 @@ public class Carrier {
             for (WellInfo manaWell : manaWells) {
                 //if (Communicator.alreadyRecorded(rc, manaWell.getMapLocation())) continue;
                 if(myWell != null && manaWell.getMapLocation().distanceSquaredTo(myHQ) > myWell.distanceSquaredTo(myHQ)) continue;
+                if(wellFull(rc, manaWell.getMapLocation())) continue;
+
                 myResource = ResourceType.MANA;
                 myWell = manaWell.getMapLocation();
                 scout = false;
             }
         }
-        if(myResource == null) {
+        if(initialAdam) {
             WellInfo[] adamWells = rc.senseNearbyWells(ResourceType.ADAMANTIUM);
             for (WellInfo adamWell : adamWells) {
-                if (Communicator.alreadyRecorded(rc, adamWell.getMapLocation())) continue;
+                //if (Communicator.alreadyRecorded(rc, adamWell.getMapLocation())) continue;
                 if(myWell != null && adamWell.getMapLocation().distanceSquaredTo(myHQ) > myWell.distanceSquaredTo(myHQ)) continue;
-
+                if(wellFull(rc, adamWell.getMapLocation())) continue;
                 myResource = ResourceType.ADAMANTIUM;
                 myWell = adamWell.getMapLocation();
                 scout = false;
@@ -98,7 +102,21 @@ public class Carrier {
 
         //if(moved)
         //    MapStore.updateMap(rc);
-        if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString());
+        if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString() + "; FULL:  " + myWellFull);
+    }
+
+    static boolean wellFull(RobotController rc, MapLocation well) throws GameActionException {
+        boolean full = true;
+        for(Direction d : directions) {
+            MapLocation spot = well.add(d);
+            if(!rc.canSenseLocation(spot)) full = false;
+            if(rc.canSenseLocation(spot) && rc.sensePassability(spot)) {
+                RobotInfo robotAtSpot = rc.senseRobotAtLocation(spot);
+                if(robotAtSpot == null || robotAtSpot.getType() != RobotType.CARRIER || robotAtSpot.getTeam() == rc.getTeam())
+                    full = false;
+            }
+        }
+        return full;
     }
 
     static boolean navigateToWell(RobotController rc) throws GameActionException {
@@ -119,8 +137,8 @@ public class Carrier {
                     }
                 }
                 if(full) {
+                    myWellFull = false;
                     myWell = null;
-                    myResource = null;
                     return false;
                 }
                 if(bestSpot != null) {
@@ -147,6 +165,7 @@ public class Carrier {
                 Well well = new Well(rc, a.wellIdx);
                 myWell = well.getLoc();
                 myResource = well.resourceType;
+                if(myResource == ResourceType.ADAMANTIUM) initialAdam = true;
                 //if(rc.getTeam().equals(Team.A))
                     //System.out.println("receiving assignment: "+  well.wellIdx + " " + wellState);
                 return;
@@ -175,7 +194,11 @@ public class Carrier {
 
     static void collectResources(RobotController rc) throws GameActionException {
         if(myResource == null) return;
+        if(rc.getResourceAmount(myResource) == 39) return;
         WellInfo[] wells = rc.senseNearbyWells(myResource);
+        if(myWell != null && wellFull(rc, myWell)) {
+            myWellFull = true;
+        }
         for(WellInfo well : wells) {
             if(rc.canCollectResource(well.getMapLocation(), well.getRate())) {
                 rc.collectResource(well.getMapLocation(), well.getRate());
@@ -189,8 +212,8 @@ public class Carrier {
         for(Map.Entry<MapLocation, ResourceType> entry : wellsSeen.entrySet()) {
             MapLocation loc = entry.getKey();
             ResourceType resource = entry.getValue();
-            if (rc.canWriteSharedArray(0, 0) && !Communicator.alreadyRecorded(rc, loc)) {
-                Communicator.storeWellInfo(rc, loc.x, loc.y, resource);
+            if (rc.canWriteSharedArray(0, 0)) {
+                Communicator.storeWellInfo(rc, loc.x, loc.y, resource, myWell != null && loc.equals(myWell) && myWellFull);
             }
         }
 

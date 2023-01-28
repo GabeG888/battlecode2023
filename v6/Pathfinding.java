@@ -38,6 +38,9 @@ public class Pathfinding {
             if(info.getCurrentDirection().opposite() == d) {
                 return false;
             }
+            if(info.getCurrentDirection() != Direction.CENTER && towards(info.getCurrentDirection().opposite(), d)) {
+                return false;
+            }
         }
 
         return true;

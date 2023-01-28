@@ -21,18 +21,25 @@ public class Communicator {
         return 0;
     }
 
-    public static void storeWellInfo(RobotController rc, int x, int y, ResourceType rt) throws GameActionException {
+    public static void storeWellInfo(RobotController rc, int x, int y, ResourceType rt, boolean full) throws GameActionException {
         assert rc.canWriteSharedArray(0, 0);
-        if(alreadyRecorded(rc, new MapLocation(x, y))) return;
+        //if(alreadyRecorded(rc, new MapLocation(x, y))) return;
         for(int i = 62; i >= 24; i--) {
             if(rc.readSharedArray(i) == 0) {
-                int encoded = Well.encodeWell(x, y, rt);
+                int encoded = Well.encodeWell(x, y, rt, full);
                 if(rc.getRoundNum() >= 1) {
                     //if(rc.getTeam().equals(Team.A))
                         //System.out.println("Storing well at index " + i + ": " + x + " " + y + " " + rt.toString());
                 }
                 rc.writeSharedArray(i, encoded);
                 return;
+            }
+            else {
+                Well well = new Well(rc, i);
+                if(well.wellX == x && well.wellY == y) {
+                    rc.writeSharedArray(i, Well.encodeWell(x, y, rt, full));
+                    return;
+                }
             }
         }
         System.out.println("All well slots used, could not store well!");
