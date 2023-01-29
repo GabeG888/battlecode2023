@@ -34,7 +34,8 @@ public class Pathfinding {
     }
 
     static int chebyshevDistance(MapLocation a, MapLocation b) {
-        return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+        return a.distanceSquaredTo(b);
+        //return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
     }
 
     static boolean towards(Direction d1, Direction d2) throws GameActionException {
@@ -199,24 +200,30 @@ public class Pathfinding {
 
             int bestDistanceNow = bestDistance;
             Direction bestDirection = Direction.CENTER;
+            String debug = "";
             for (Direction direction : directions) {
-                if(!canMove(rc, direction)) continue;
-
+                if(!rc.onTheMap(myLoc.add(direction))) {
+                    continue;
+                }
                 Direction current = rc.senseMapInfo(myLoc.add(direction)).getCurrentDirection();
-                int distance = chebyshevDistance(myLoc.add(direction), targetLoc);
+                MapLocation endLoc = myLoc.add(direction);
+                int distance = chebyshevDistance(endLoc, targetLoc);
                 if(rc.getType() == RobotType.LAUNCHER || (rc.getResourceAmount(ResourceType.MANA) + rc.getResourceAmount(ResourceType.ADAMANTIUM)) > 30) {
-                    MapLocation endLoc = myLoc.add(direction).add(direction);
                     if(rc.canSenseLocation(endLoc) && rc.sensePassability(endLoc)) {
+                        endLoc = myLoc.add(direction).add(current);
                         distance = chebyshevDistance(endLoc, targetLoc);
                     }
                 }
+                if(!canMove(rc, direction)) continue;
 
-                if (distance < bestDistanceNow &&
-                towards(current, direction.opposite())) {
+                debug += direction + ": " + distance;
+
+                if (distance < bestDistanceNow) {
                     bestDistanceNow = distance;
                     bestDirection = direction;
                 }
             }
+            rc.setIndicatorString(debug);
             if (bestDirection != Direction.CENTER) {
                 if (canMove(rc, bestDirection)) {
                     //rc.setIndicatorString(String.valueOf(bestDirection));
@@ -226,6 +233,7 @@ public class Pathfinding {
                     moved = true;
                 }
             }
+            //rc.setIndicatorString(bestDirection + "");
             if (lastDirection == null) lastDirection = myLoc.directionTo(targetLoc).rotateRight().rotateRight();
             Direction direction = lastDirection.rotateLeft().rotateLeft();
             for (int i = 0; i < 8; i++) {

@@ -245,9 +245,13 @@ public class Launcher {
         RobotInfo[] allies = rc.senseNearbyRobots(1000, rc.getTeam());
 
         if(myHQ == null) {
-            for(RobotInfo robot : rc.senseNearbyRobots(1000, rc.getTeam())) {
-                if(robot.getType() == RobotType.HEADQUARTERS) {
-                    myHQ = robot.getLocation();
+            int bestDist = 10000;
+            for(int i = 0; i < 4; i++) {
+                int encoded = rc.readSharedArray(i) - 1;
+                MapLocation hq = new MapLocation(encoded/60,encoded%60);
+                if(hq.distanceSquaredTo(rc.getLocation()) < bestDist) {
+                    myHQ = hq;
+                    bestDist = hq.distanceSquaredTo(rc.getLocation());
                 }
             }
             if(enemies.length > 0) defending = 30;
@@ -378,7 +382,8 @@ public class Launcher {
             goingBackToHQ = false;
         }
 
+        addToIndicatorString(target.toString() + " Symmetries (possible/target): " + possibleSymmetry+"/"+targetSymmetry);
 
-        rc.setIndicatorString(debug);
+        //rc.setIndicatorString(debug);
     }
 }

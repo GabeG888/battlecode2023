@@ -31,7 +31,7 @@ public class Carrier {
         if(myHQ == null) initHQ(rc);
         if(myWell == null && !scout && rc.canWriteSharedArray(0, 0)) receiveAssignment(rc);
 
-        if(turnsAlive < 3 && myHQ != null) {
+        if(scout && turnsAlive < 3 && myHQ != null) {
             Pathfinding.navigateAwayFrom(rc, myHQ);
             turnsAlive++;
         }
@@ -66,6 +66,7 @@ public class Carrier {
 
         if (myResource != null && rc.getResourceAmount(myResource) > 38) {
             Pathfinding.navigateToLocationBug(rc, myHQ);
+            if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString() + "; FULL:  " + myWellFull + "; Symmetry: " + possibleSymmetry);
             return;
         }
         else if(myWell != null) {
@@ -151,12 +152,13 @@ public class Carrier {
 
     static boolean wellFull(RobotController rc, MapLocation well) throws GameActionException {
         boolean full = true;
+        if(!rc.canSenseLocation(well)) return false;
         for(Direction d : directions) {
             MapLocation spot = well.add(d);
-            if(!rc.canSenseLocation(spot)) full = false;
+            //if(!rc.canSenseLocation(spot)) full = false;
             if(rc.canSenseLocation(spot) && rc.sensePassability(spot)) {
                 RobotInfo robotAtSpot = rc.senseRobotAtLocation(spot);
-                if(robotAtSpot == null || robotAtSpot.getType() != RobotType.CARRIER || robotAtSpot.getTeam() == rc.getTeam())
+                if(robotAtSpot == null || robotAtSpot.getType() != RobotType.CARRIER || robotAtSpot.getTeam() == rc.getTeam().opponent())
                     full = false;
             }
         }
@@ -196,6 +198,12 @@ public class Carrier {
                 return Pathfinding.navigateToLocationBug(rc, myWell);
             }
             return Pathfinding.navigateToLocationBug(rc, myWell);
+        }
+        else if(myWell.distanceSquaredTo(rc.getLocation()) <= 2) {
+            if(rc.canMove(rc.getLocation().directionTo(myWell))) {
+                rc.move(rc.getLocation().directionTo(myWell));
+                return true;
+            }
         }
         return false;
     }
@@ -239,17 +247,18 @@ public class Carrier {
     }
 
     static void collectResources(RobotController rc) throws GameActionException {
-        if(myResource == null) return;
+        if(myResource == null || myWell == null) return;
         if(rc.getResourceAmount(myResource) == 39) return;
-        WellInfo[] wells = rc.senseNearbyWells(myResource);
-        if(myWell != null && wellFull(rc, myWell)) {
-            myWellFull = true;
-        }
-        for(WellInfo well : wells) {
-            if(rc.canCollectResource(well.getMapLocation(), well.getRate())) {
-                rc.collectResource(well.getMapLocation(), well.getRate());
+        if(!rc.canSenseLocation(myWell)) return;
+        WellInfo well = rc.senseWell(myWell);
+
+        if(rc.canCollectResource(well.getMapLocation(), well.getRate())) {
+            rc.collectResource(well.getMapLocation(), well.getRate());
+            if(myWell != null && wellFull(rc, myWell)) {
+                myWellFull = true;
             }
         }
+
     }
 
     static void depositResources(RobotController rc) throws GameActionException {

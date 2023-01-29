@@ -68,7 +68,9 @@ public class Headquarters {
             int spawnable = 0;
             int filled = 0;
 
-            for(MapInfo mi : rc.senseNearbyMapInfos(9)) {
+            MapInfo[] mis = rc.senseNearbyMapInfos(9);
+            Collections.shuffle(Arrays.asList(mis));
+            for(MapInfo mi : mis) {
 
                 RobotInfo there = rc.senseRobotAtLocation(mi.getMapLocation());
                 if(mi.isPassable()) {
@@ -193,25 +195,6 @@ public class Headquarters {
 
         rc.setIndicatorString(State.getState(rc).toString() + "; Symmetry: " + rc.readSharedArray(63));
 
-        if(State.getState(rc) == State.COMPLETE_CONTROL) {
-
-            if(enemyLaunchers == 0) {
-
-                if(rc.canBuildAnchor(Anchor.STANDARD)) {
-                    rc.buildAnchor(Anchor.STANDARD);
-                }
-                spawnLaunchers(rc);
-                spawnCarriers(rc);
-
-            }
-            else {
-                if(rc.getResourceAmount(ResourceType.MANA) > (enemyLaunchers - allyLaunchers) * 45) spawnLaunchers(rc);
-                if(enemyLaunchers - allyLaunchers < 4) spawnCarriers(rc);
-            }
-            return;
-
-        }
-
         //Clear assignments list
         if(hqIdx == 0) {
             for(int i = 4; i <= 23; i++) {
@@ -249,13 +232,31 @@ public class Headquarters {
         queuedAdamWells = adamWells;
         queuedManaWells = manaWells;
 
-        //Spawn stuff
         int spawned = 0;
-        if(rc.getResourceAmount(ResourceType.MANA) > (enemyLaunchers - allyLaunchers) * 45) {
-            spawnLaunchers(rc);
+        if(State.getState(rc) == State.COMPLETE_CONTROL) {
+
+            if(enemyLaunchers == 0) {
+
+                if(rc.canBuildAnchor(Anchor.STANDARD)) {
+                    rc.buildAnchor(Anchor.STANDARD);
+                }
+                spawnLaunchers(rc);
+                spawnCarriers(rc);
+
+            }
+            else {
+                if(rc.getResourceAmount(ResourceType.MANA) > (enemyLaunchers - allyLaunchers) * 45) spawnLaunchers(rc);
+                if(enemyLaunchers - allyLaunchers < 4) spawnCarriers(rc);
+            }
         }
-        if(enemyLaunchers - allyLaunchers < 4 &&!allFull) {
-            spawned = spawnCarriers(rc);
+        else {
+            //Spawn stuff
+            if (rc.getResourceAmount(ResourceType.MANA) > (enemyLaunchers - allyLaunchers) * 45) {
+                spawnLaunchers(rc);
+            }
+            if (enemyLaunchers - allyLaunchers < 4 && !allFull) {
+                spawned = spawnCarriers(rc);
+            }
         }
 
 
