@@ -24,6 +24,8 @@ public class Carrier {
     static Map<MapLocation, ResourceType> wellsSeen = new HashMap<>();
     static boolean initialAdam = false;
     static boolean myWellFull = false;
+    static int possibleSymmetry = 7;
+
     static int turnsAlive = 0;
     public static void run(RobotController rc) throws GameActionException {
         if(myHQ == null) initHQ(rc);
@@ -32,6 +34,9 @@ public class Carrier {
         if(turnsAlive < 3 && myHQ != null) {
             Pathfinding.navigateAwayFrom(rc, myHQ);
             turnsAlive++;
+        }
+        if(possibleSymmetry != rc.readSharedArray(63)) {
+            possibleSymmetry &= rc.readSharedArray(63);
         }
         depositResources(rc);
         if(anchorStuff(rc)) return;
@@ -99,10 +104,49 @@ public class Carrier {
         }
 
         recordWells(rc);
+        //Check for symmetry
+        for(int i = 62; i >= 24; i--) {
+            if(rc.readSharedArray(i) == 0) break;
+            Well well = new Well(rc, i);
+            MapLocation loc = well.getLoc();
+            int x = loc.x, y = loc.y;
+            if((possibleSymmetry & MapStore.LEFTRIGHT) > 0) {
+                if(rc.canSenseLocation(new MapLocation(rc.getMapWidth()-1 - x, y))) {
+                    WellInfo wi = rc.senseWell(new MapLocation(rc.getMapWidth()-1 - x, y));
+                    if(wi == null || wi.getResourceType() != well.resourceType) {
+                        possibleSymmetry &= ~MapStore.LEFTRIGHT;
+                        System.out.println("LEFTRIGHT " + loc + " " + new MapLocation(rc.getMapWidth()-1 - x, y));
+                    }
+                }
+            }
+            if((possibleSymmetry & MapStore.UPDOWN) > 0) {
+                if(rc.canSenseLocation(new MapLocation(x, rc.getMapHeight()-1 - y))) {
+                    WellInfo wi = rc.senseWell(new MapLocation(x, rc.getMapHeight()-1 - y));
+                    if(wi == null || wi.getResourceType() != well.resourceType) {
+                        possibleSymmetry &= ~MapStore.UPDOWN;
+                        System.out.println("UPDOWN " + loc + " " + new MapLocation(x, rc.getMapHeight()-1 - y));
+
+                    }
+                }
+            }
+            if((possibleSymmetry & MapStore.ROTATIONAL) > 0) {
+                if(rc.canSenseLocation(new MapLocation(rc.getMapWidth()-1 - x, rc.getMapHeight()-1 - y))) {
+                    WellInfo wi = rc.senseWell(new MapLocation(rc.getMapWidth()-1 - x, rc.getMapHeight()-1 - y));
+                    if(wi == null || wi.getResourceType() != well.resourceType) {
+                        possibleSymmetry &= ~MapStore.ROTATIONAL;
+                        System.out.println("ROTATIONAL " + loc + " " + new MapLocation(rc.getMapWidth()-1 - x, rc.getMapHeight()-1 - y));
+
+                    }
+                }
+            }
+        }
+        if(rc.canWriteSharedArray(0,0)) {
+            rc.writeSharedArray(63, possibleSymmetry & rc.readSharedArray(63));
+        }
 
         //if(moved)
         //    MapStore.updateMap(rc);
-        if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString() + "; FULL:  " + myWellFull);
+        if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString() + "; FULL:  " + myWellFull + "; Symmetry: " + possibleSymmetry);
     }
 
     static boolean wellFull(RobotController rc, MapLocation well) throws GameActionException {
@@ -127,7 +171,7 @@ public class Carrier {
                 int bestDist = 10000;
                 for(Direction d : directions) {
                     MapLocation spot = myWell.add(d);
-                    if(!rc.canSenseLocation(spot)) full = false;
+                    if(!rc.canSenseLocation(spot) && rc.onTheMap(spot)) full = false;
                     if(rc.canSenseLocation(spot) && rc.sensePassability(spot) && rc.senseRobotAtLocation(spot) == null) {
                         full = false;
                         if(spot.distanceSquaredTo(rc.getLocation()) < bestDist) {
@@ -141,14 +185,15 @@ public class Carrier {
                     myWell = null;
                     return false;
                 }
-                if(bestSpot != null) {
+                /*if(bestSpot != null) {
                    // rc.setIndicatorString(bestSpot.toString());
                     if(bestDist <= 2 && rc.canMove(rc.getLocation().directionTo(bestSpot))) {
                         rc.move(rc.getLocation().directionTo(bestSpot));
                         return true;
                     }
                     return Pathfinding.navigateToLocationBug(rc, bestSpot);
-                }
+                }*/
+                return Pathfinding.navigateToLocationBug(rc, myWell);
             }
             return Pathfinding.navigateToLocationBug(rc, myWell);
         }
@@ -188,7 +233,8 @@ public class Carrier {
     public static void recordWells(RobotController rc) {
         WellInfo[] wells = rc.senseNearbyWells();
         for(WellInfo well : wells) {
-            wellsSeen.putIfAbsent(well.getMapLocation(), well.getResourceType());
+            MapLocation m = well.getMapLocation();
+            wellsSeen.putIfAbsent(m, well.getResourceType());
         }
     }
 
@@ -208,11 +254,10 @@ public class Carrier {
 
     static void depositResources(RobotController rc) throws GameActionException {
         if(myResource == null) return;
-
-        for(Map.Entry<MapLocation, ResourceType> entry : wellsSeen.entrySet()) {
-            MapLocation loc = entry.getKey();
-            ResourceType resource = entry.getValue();
-            if (rc.canWriteSharedArray(0, 0)) {
+        if (rc.canWriteSharedArray(0, 0)) {
+            for (Map.Entry<MapLocation, ResourceType> entry : wellsSeen.entrySet()) {
+                MapLocation loc = entry.getKey();
+                ResourceType resource = entry.getValue();
                 Communicator.storeWellInfo(rc, loc.x, loc.y, resource, myWell != null && loc.equals(myWell) && myWellFull);
             }
         }

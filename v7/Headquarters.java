@@ -234,6 +234,7 @@ public class Headquarters {
             if(encoded == 0) break;
             if(i==62)allFull = true;
             Well well = new Well(rc, i);
+            rc.setIndicatorDot(well.getLoc(), 255,255,255);
             if(well.full) continue;
             if(well.resourceType == ResourceType.ADAMANTIUM)
                 adamWells.add(well);

@@ -27,8 +27,14 @@ public class Pathfinding {
     static int turnsToWait = 5;
     static Random rng = new Random();
 
+    static boolean rotateRight = true;
+
     static void resetDistance() {
         bestDistance = 999999;
+    }
+
+    static int chebyshevDistance(MapLocation a, MapLocation b) {
+        return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
     }
 
     static boolean towards(Direction d1, Direction d2) throws GameActionException {
@@ -173,7 +179,6 @@ public class Pathfinding {
         return true;
     }
 
-    static boolean circlingWall = false;
     public static boolean navigateToLocationBug(RobotController rc, MapLocation targetLoc) throws GameActionException {
         if(targetLoc != lastTarget) {
             bestDistance = 999999;
@@ -188,15 +193,26 @@ public class Pathfinding {
         rc.setIndicatorLine(rc.getLocation(), targetLoc, 255, 0, 0);
 
         while(rc.isMovementReady()) {
+            boolean moved = false;
             MapLocation myLoc = rc.getLocation();
-            bestDistance = Math.min(bestDistance, myLoc.distanceSquaredTo(targetLoc));
+            bestDistance = Math.min(bestDistance, chebyshevDistance(myLoc, targetLoc));
 
             int bestDistanceNow = bestDistance;
             Direction bestDirection = Direction.CENTER;
             for (Direction direction : directions) {
-                int distance = myLoc.add(direction).distanceSquaredTo(targetLoc);
-                if (distance < bestDistanceNow && canMove(rc, direction) &&
-                towards(rc.senseMapInfo(myLoc.add(direction)).getCurrentDirection(), direction.opposite())) {
+                if(!canMove(rc, direction)) continue;
+
+                Direction current = rc.senseMapInfo(myLoc.add(direction)).getCurrentDirection();
+                int distance = chebyshevDistance(myLoc.add(direction), targetLoc);
+                if(rc.getType() == RobotType.LAUNCHER || (rc.getResourceAmount(ResourceType.MANA) + rc.getResourceAmount(ResourceType.ADAMANTIUM)) > 30) {
+                    MapLocation endLoc = myLoc.add(direction).add(direction);
+                    if(rc.canSenseLocation(endLoc) && rc.sensePassability(endLoc)) {
+                        distance = chebyshevDistance(endLoc, targetLoc);
+                    }
+                }
+
+                if (distance < bestDistanceNow &&
+                towards(current, direction.opposite())) {
                     bestDistanceNow = distance;
                     bestDirection = direction;
                 }
@@ -207,49 +223,81 @@ public class Pathfinding {
                     rc.move(bestDirection);
                     lastDirection = bestDirection.rotateRight().rotateRight();
                     turnsWaited = 0;
-                    circlingWall = false;
+                    moved = true;
                 }
             }
-
             if (lastDirection == null) lastDirection = myLoc.directionTo(targetLoc).rotateRight().rotateRight();
             Direction direction = lastDirection.rotateLeft().rotateLeft();
             for (int i = 0; i < 8; i++) {
                 MapLocation newLoc = myLoc.add(direction);
 
-                if(!rc.onTheMap(newLoc) || !rc.canSenseLocation(newLoc) || !rc.sensePassability(newLoc)) {
-                    direction = direction.rotateRight();
+                if(!rc.onTheMap(newLoc)) {
+                    //rotateRight = !rotateRight;
+                    if(rotateRight)
+                        direction = direction.rotateRight();
+                    else direction = direction.rotateLeft();
                     continue;
                 }
-
+                if(!rc.canSenseLocation(newLoc) || !rc.sensePassability(newLoc)) {
+                    if(rotateRight)
+                        direction = direction.rotateRight();
+                    else direction = direction.rotateLeft();
+                    continue;
+                }
+                RobotInfo robotAtLoc = rc.senseRobotAtLocation(newLoc);
+                /*if((robotAtLoc != null)) {
+                    //rotateRight = !rotateRight;
+                    if(rotateRight)
+                        direction = direction.rotateRight();
+                    else direction = direction.rotateLeft();
+                    continue;
+                }*/
                 Direction current = rc.senseMapInfo(newLoc).getCurrentDirection();
                 if ((!towards(current, direction) || !towards(current, lastDirection))) {
-                    direction = direction.rotateRight();
+                    if(rotateRight)
+                        direction = direction.rotateRight();
+                    else direction = direction.rotateLeft();
                     continue;
                 }
 
-                RobotInfo robotAtLoc = rc.senseRobotAtLocation(myLoc.add(direction));
 
                 if (canMove(rc, direction) && rc.canMove(direction)) {
-                    //rc.setIndicatorString(String.valueOf(direction));
+                    //c.setIndicatorString(direction + " " + (rotateRight ? "ROTATING RIGHT" : "ROTATING LEFT"));
                     rc.move(direction);
                     lastDirection = direction;
+                    moved = true;
                     turnsWaited = 0;
-                    circlingWall = true;
                     break;
                 } else if (rc.onTheMap(myLoc.add(direction)) && robotAtLoc != null &&
                         robotAtLoc.getType() == RobotType.HEADQUARTERS || turnsWaited > turnsToWait) {
                     bestDistance = 999999;
-                    direction = direction.rotateRight();
+                    if(rotateRight)
+                        direction = direction.rotateRight();
+                    else direction = direction.rotateLeft();
                 } else {
                     turnsWaited += 1;
                     break;
                 }
             }
-            bestDistance = Math.min(bestDistance, rc.getLocation().distanceSquaredTo(targetLoc));
+            bestDistance = Math.min(bestDistance, chebyshevDistance(rc.getLocation(), targetLoc));
+            if(!moved)break;
         }
-
+        //rc.setIndicatorString(lastDirection + " " + (rotateRight ? "ROTATING RIGHT" : "ROTATING LEFT"));
+        //lastDirection = null;
         //rc.setIndicatorString(String.valueOf(bestDistance));
         return true;
     }
+    public static boolean navigateToLocationBug2(RobotController rc, MapLocation targetLoc) throws GameActionException {
+        int cooldown = (rc.getType() == RobotType.CARRIER ?
+                        5 + 3*(rc.getResourceAmount(ResourceType.MANA) + rc.getResourceAmount(ResourceType.ADAMANTIUM))/8
+                        : 10);
+        int moves = Math.max((10-rc.getMovementCooldownTurns())/cooldown, 0);
 
+        for(; moves > 0; moves--) {
+
+        }
+
+
+        return true;
+    }
 }

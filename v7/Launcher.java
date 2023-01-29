@@ -9,6 +9,12 @@ import java.util.*;
 
 public class Launcher {
 
+    static String debug = "";
+
+    static void addToIndicatorString(String s) {
+        debug += "; " + s;
+    }
+
     static MapLocation myHQ = null;
 
     static int getAttackPriority(RobotInfo r) {
@@ -233,6 +239,8 @@ public class Launcher {
     static boolean goingBackToHQ;
     static int defending = 0;
     static void run(RobotController rc) throws GameActionException {
+        debug = "";
+
         RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
         RobotInfo[] allies = rc.senseNearbyRobots(1000, rc.getTeam());
 
@@ -283,7 +291,7 @@ public class Launcher {
         boolean moved = false;
         if(attacked) {
             moved = maintainDistanceAfterFiring(rc);
-            rc.setIndicatorString("Mantaining distance after firing");
+            addToIndicatorString("Mantaining distance after firing");
         }
 
         camping = surroundHQ(rc);
@@ -296,7 +304,7 @@ public class Launcher {
         if(!attacked) {
             moved = maintainDistance(rc);
             attackNearby(rc);
-            if(moved) rc.setIndicatorString("Mantaining distance");
+            if(moved) addToIndicatorString("Mantaining distance");
             else if(defending > 0) {
                 Pathfinding.navigateToLocationFuzzy(rc, myHQ);
                 defending--;
@@ -304,11 +312,11 @@ public class Launcher {
             else if(rc.getRoundNum() % 2 == 0) {
                 if(goingBackToHQ) {
                     Pathfinding.navigateToLocationBug(rc, myHQ);
-                    rc.setIndicatorString("Going to HQ");
+                    addToIndicatorString("Going to HQ");
                 }
                 else {
                     Pathfinding.navigateToLocationBug(rc, target);
-                    rc.setIndicatorString("Going to target");
+                    addToIndicatorString("Going to target");
                 }
             }
             attackNearby(rc);
@@ -328,9 +336,49 @@ public class Launcher {
 
         attackClouds(rc);
 
+        //Check for symmetry
+        for(int i = 62; i >= 24; i--) {
+            if(rc.readSharedArray(i) == 0) break;
+            Well well = new Well(rc, i);
+            MapLocation loc = well.getLoc();
+            int x = loc.x, y = loc.y;
+            if((possibleSymmetry & MapStore.LEFTRIGHT) > 0) {
+                if(rc.canSenseLocation(new MapLocation(rc.getMapWidth()-1 - x, y))) {
+                    WellInfo wi = rc.senseWell(new MapLocation(rc.getMapWidth()-1 - x, y));
+                    if(wi == null || wi.getResourceType() != well.resourceType) {
+                        possibleSymmetry &= ~MapStore.LEFTRIGHT;
+                        System.out.println("LEFTRIGHT " + loc + " " + new MapLocation(rc.getMapWidth()-1 - x, y));
+                    }
+                }
+            }
+            if((possibleSymmetry & MapStore.UPDOWN) > 0) {
+                if(rc.canSenseLocation(new MapLocation(x, rc.getMapHeight()-1 - y))) {
+                    WellInfo wi = rc.senseWell(new MapLocation(x, rc.getMapHeight()-1 - y));
+                    if(wi == null || wi.getResourceType() != well.resourceType) {
+                        possibleSymmetry &= ~MapStore.UPDOWN;
+                        System.out.println("UPDOWN " + loc + " " + new MapLocation(x, rc.getMapHeight()-1 - y));
+
+                    }
+                }
+            }
+            if((possibleSymmetry & MapStore.ROTATIONAL) > 0) {
+                if(rc.canSenseLocation(new MapLocation(rc.getMapWidth()-1 - x, rc.getMapHeight()-1 - y))) {
+                    WellInfo wi = rc.senseWell(new MapLocation(rc.getMapWidth()-1 - x, rc.getMapHeight()-1 - y));
+                    if(wi == null || wi.getResourceType() != well.resourceType) {
+                        possibleSymmetry &= ~MapStore.ROTATIONAL;
+                        System.out.println("ROTATIONAL " + loc + " " + new MapLocation(rc.getMapWidth()-1 - x, rc.getMapHeight()-1 - y));
+
+                    }
+                }
+            }
+        }
+
         if(rc.canWriteSharedArray(0,0)) {
             rc.writeSharedArray(63, possibleSymmetry & rc.readSharedArray(63));
             goingBackToHQ = false;
         }
+
+
+        rc.setIndicatorString(debug);
     }
 }
