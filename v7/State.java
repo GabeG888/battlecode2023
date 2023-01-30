@@ -8,8 +8,8 @@ public enum State {
     COMPLETE_CONTROL;
 
     public static State getState (RobotController rc) {
-        if(rc.getRobotCount() > rc.getMapWidth() * rc.getMapHeight()/6
-                || rc.getRoundNum() > 600 && rc.getRobotCount() > 150) return COMPLETE_CONTROL;
+        if(rc.getRobotCount() > rc.getMapWidth() * rc.getMapHeight()/5
+                || rc.getRoundNum() > 400 && rc.getRobotCount() > rc.getMapWidth() * rc.getMapHeight()/10) return COMPLETE_CONTROL;
         if(rc.getRoundNum() > 1800) return COMPLETE_CONTROL;
         else return CHILLING;
     }

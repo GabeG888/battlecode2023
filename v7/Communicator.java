@@ -37,7 +37,7 @@ public class Communicator {
             else {
                 Well well = new Well(rc, i);
                 if(well.wellX == x && well.wellY == y) {
-                    rc.writeSharedArray(i, Well.encodeWell(x, y, rt, full));
+                    rc.writeSharedArray(i, Well.encodeWell(x, y, rt, full || well.full));
                     return;
                 }
             }

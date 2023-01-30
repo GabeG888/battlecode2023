@@ -193,8 +193,6 @@ public class Headquarters {
             acquireTarget(rc);
         }
 
-        rc.setIndicatorString(State.getState(rc).toString() + "; Symmetry: " + rc.readSharedArray(63));
-
         //Clear assignments list
         if(hqIdx == 0) {
             for(int i = 4; i <= 23; i++) {
@@ -203,21 +201,20 @@ public class Headquarters {
         }
         postAssignments(rc);
 
-
-
-
         //if(rc.getRoundNum() == 2) spawned += 2;
 
         //Queue assignments
         ArrayList<Well> manaWells = new ArrayList<>();
         ArrayList<Well> adamWells = new ArrayList<>();
+        String debug = "";
         boolean allFull = false;
         for(int i = 62; i >= 24; i--) {
             int encoded = rc.readSharedArray(i);
             if(encoded == 0) break;
             if(i==62)allFull = true;
             Well well = new Well(rc, i);
-            rc.setIndicatorDot(well.getLoc(), 255,255,255);
+            rc.setIndicatorDot(well.getLoc(), well.full ? 0 : 255,255,255);
+            debug += ", (" + well.getLoc() + " - " + well.resourceType + ", " + well.full + ")";
             if(well.full) continue;
             if(well.resourceType == ResourceType.ADAMANTIUM)
                 adamWells.add(well);
@@ -258,7 +255,8 @@ public class Headquarters {
                 spawned = spawnCarriers(rc);
             }
         }
-
+        //System.out.println(debug);
+        rc.setIndicatorString(State.getState(rc).toString() + "; Symmetry: " + rc.readSharedArray(63));
 
         lastSpawn = spawned;
 
@@ -271,6 +269,8 @@ public class Headquarters {
     static Map<MapLocation, Integer> assigned = new HashMap<>();
     static ArrayList<Well> queuedAdamWells = new ArrayList<>();
     static ArrayList<Well> queuedManaWells = new ArrayList<>();
+
+
 
     static void postAssignments(RobotController rc) throws GameActionException {
         if(rc.getRoundNum() == 1) return;
