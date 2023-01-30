@@ -185,6 +185,7 @@ public class Pathfinding {
             bestDistance = 999999;
             lastDirection = null;
             lastTarget = targetLoc;
+            rotateRight = true;
         }
         if(!rc.isMovementReady()) return true;
         if(bestDistance < 1) return true;
@@ -192,51 +193,63 @@ public class Pathfinding {
         if(rc.canSenseLocation(targetLoc) && !rc.sensePassability(targetLoc)) return false;
 
         rc.setIndicatorLine(rc.getLocation(), targetLoc, 255, 0, 0);
+        String debug = "";
 
         while(rc.isMovementReady()) {
             boolean moved = false;
             MapLocation myLoc = rc.getLocation();
             bestDistance = Math.min(bestDistance, chebyshevDistance(myLoc, targetLoc));
-
             int bestDistanceNow = bestDistance;
             Direction bestDirection = Direction.CENTER;
-            String debug = "";
             for (Direction direction : directions) {
                 if(!rc.onTheMap(myLoc.add(direction))) {
                     continue;
                 }
-                Direction current = rc.senseMapInfo(myLoc.add(direction)).getCurrentDirection();
                 MapLocation endLoc = myLoc.add(direction);
-                int distance = chebyshevDistance(endLoc, targetLoc);
-                if(rc.getType() == RobotType.LAUNCHER || (rc.getResourceAmount(ResourceType.MANA) + rc.getResourceAmount(ResourceType.ADAMANTIUM)) > 30) {
-                    if(rc.canSenseLocation(endLoc) && rc.sensePassability(endLoc)) {
-                        endLoc = myLoc.add(direction).add(current);
-                        distance = chebyshevDistance(endLoc, targetLoc);
-                    }
+                Direction current = rc.senseMapInfo(endLoc).getCurrentDirection();
+
+                if((rc.getType() == RobotType.LAUNCHER ||
+                        (rc.getResourceAmount(ResourceType.MANA) +
+                        rc.getResourceAmount(ResourceType.ADAMANTIUM)) > 30) &&
+                        rc.canSenseLocation(endLoc.add(current)) &&
+                        rc.sensePassability(endLoc.add(current)) &&
+                        rc.senseRobotAtLocation(endLoc.add(current)) == null)
+                {
+                    endLoc = endLoc.add(current);
                 }
+
+                int distance = chebyshevDistance(endLoc, targetLoc);
+
                 if(!canMove(rc, direction)) continue;
 
-                debug += direction + ": " + distance;
+                //debug += direction + ": " + distance;
 
                 if (distance < bestDistanceNow) {
                     bestDistanceNow = distance;
                     bestDirection = direction;
                 }
             }
-            rc.setIndicatorString(debug);
             if (bestDirection != Direction.CENTER) {
-                if (canMove(rc, bestDirection)) {
-                    //rc.setIndicatorString(String.valueOf(bestDirection));
+                if (canMove(rc, bestDirection) && rc.canMove(bestDirection)) {
                     rc.move(bestDirection);
-                    lastDirection = bestDirection.rotateRight().rotateRight();
+                    lastDirection = null;
                     turnsWaited = 0;
                     moved = true;
+                    rotateRight = true;
+                    continue;
                 }
             }
-            //rc.setIndicatorString(bestDirection + "");
-            if (lastDirection == null) lastDirection = myLoc.directionTo(targetLoc).rotateRight().rotateRight();
-            Direction direction = lastDirection.rotateLeft().rotateLeft();
+            if (lastDirection == null) {
+                debug += "NULL";
+                if(rotateRight) lastDirection = myLoc.directionTo(targetLoc).rotateRight().rotateRight();
+                else lastDirection = myLoc.directionTo(targetLoc).rotateLeft().rotateLeft();
+            }
+            Direction direction = null;
+            if (rotateRight) direction = lastDirection.rotateLeft().rotateLeft();
+            else direction = lastDirection.rotateRight().rotateRight();
             for (int i = 0; i < 8; i++) {
+                debug += lastDirection;
+                debug += direction;
                 MapLocation newLoc = myLoc.add(direction);
 
                 if(!rc.onTheMap(newLoc)) {
@@ -261,16 +274,17 @@ public class Pathfinding {
                     continue;
                 }*/
                 Direction current = rc.senseMapInfo(newLoc).getCurrentDirection();
-                if ((!towards(current, direction) || !towards(current, lastDirection))) {
-                    if(rotateRight)
-                        direction = direction.rotateRight();
-                    else direction = direction.rotateLeft();
+                if ((!towards(current, direction))) {
+                    if(rotateRight) {
+                        rotateRight = false;
+                        lastDirection = null;
+                    }
+                    direction = direction.rotateLeft();
                     continue;
                 }
 
 
                 if (canMove(rc, direction) && rc.canMove(direction)) {
-                    //c.setIndicatorString(direction + " " + (rotateRight ? "ROTATING RIGHT" : "ROTATING LEFT"));
                     rc.move(direction);
                     lastDirection = direction;
                     moved = true;
@@ -278,7 +292,6 @@ public class Pathfinding {
                     break;
                 } else if (rc.onTheMap(myLoc.add(direction)) && robotAtLoc != null &&
                         robotAtLoc.getType() == RobotType.HEADQUARTERS || turnsWaited > turnsToWait) {
-                    bestDistance = 999999;
                     if(rotateRight)
                         direction = direction.rotateRight();
                     else direction = direction.rotateLeft();
@@ -287,14 +300,13 @@ public class Pathfinding {
                     break;
                 }
             }
-            bestDistance = Math.min(bestDistance, chebyshevDistance(rc.getLocation(), targetLoc));
-            if(!moved)break;
+            if(!moved) break;
         }
-        //rc.setIndicatorString(lastDirection + " " + (rotateRight ? "ROTATING RIGHT" : "ROTATING LEFT"));
-        //lastDirection = null;
-        //rc.setIndicatorString(String.valueOf(bestDistance));
+
+        rc.setIndicatorString(debug);
         return true;
     }
+
     public static boolean navigateToLocationBug2(RobotController rc, MapLocation targetLoc) throws GameActionException {
         int cooldown = (rc.getType() == RobotType.CARRIER ?
                         5 + 3*(rc.getResourceAmount(ResourceType.MANA) + rc.getResourceAmount(ResourceType.ADAMANTIUM))/8
