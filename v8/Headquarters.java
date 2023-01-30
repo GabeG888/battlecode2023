@@ -106,7 +106,7 @@ public class Headquarters {
     static void spawnLaunchers(RobotController rc) throws GameActionException {
         while(rc.isActionReady()) {
             if (rc.getResourceAmount(ResourceType.MANA) < 45) return;
-            if(State.getState(rc) == State.COMPLETE_CONTROL) return;
+            if(State.getState(rc) == State.COMPLETE_CONTROL && rc.getResourceAmount(ResourceType.ADAMANTIUM) < 145) return;
             MapLocation bestSpawn = null;
             int bestDist = 10000;
             for(MapInfo mi : rc.senseNearbyMapInfos(9)) {
