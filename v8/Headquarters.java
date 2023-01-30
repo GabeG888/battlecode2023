@@ -173,7 +173,6 @@ public class Headquarters {
         for(RobotInfo ally : allies) {
             if(ally.getType() == RobotType.LAUNCHER) allyLaunchers++;
         }
-
         //if(enemyLaunchers - allyLaunchers > 10) rc.disintegrate();
 
         if(rc.getRoundNum() == 1) {
@@ -187,10 +186,16 @@ public class Headquarters {
             acquireTarget(rc);
         }
 
-
         if(MapStore.possibleSymmetry != rc.readSharedArray(63)) {
             MapStore.possibleSymmetry = rc.readSharedArray(63);
             acquireTarget(rc);
+        }
+
+        if(enemyLaunchers > 0) {
+            rc.writeSharedArray(hqIdx, rc.readSharedArray(hqIdx) | 0b1000_0000_0000_0000);
+        }
+        else{
+            rc.writeSharedArray(hqIdx, rc.readSharedArray(hqIdx) & 0b0111_1111_1111_1111);
         }
 
         //Clear assignments list

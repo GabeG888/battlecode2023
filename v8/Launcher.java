@@ -16,6 +16,7 @@ public class Launcher {
     }
 
     static MapLocation myHQ = null;
+    static int hqIdx;
 
     static int getAttackPriority(RobotInfo r) {
         RobotType type = r.getType();
@@ -254,6 +255,7 @@ public class Launcher {
     static boolean hasSeenTarget;
     static boolean goingBackToHQ;
     static int defending = 0;
+    static boolean defender = false;
     static void run(RobotController rc) throws GameActionException {
         debug = "";
 
@@ -285,11 +287,16 @@ public class Launcher {
                 MapLocation hq = new MapLocation(encoded/60,encoded%60);
                 if(hq.distanceSquaredTo(rc.getLocation()) < bestDist) {
                     myHQ = hq;
+                    hqIdx = i;
                     bestDist = hq.distanceSquaredTo(rc.getLocation());
                 }
             }
-            if(enemies.length > 0) defending = 30;
+            if(enemies.length > 0) defender = true;
         }
+        if(defender && ((rc.readSharedArray(hqIdx) & 0b1000_0000_0000_0000) == 0)) {
+            defender = false;
+        }
+
 
         if(possibleSymmetry != rc.readSharedArray(63)) {
             possibleSymmetry &= rc.readSharedArray(63);
@@ -342,10 +349,10 @@ public class Launcher {
         if(!attacked) {
             moved = maintainDistance(rc);
             attackNearby(rc);
-            if(moved) addToIndicatorString("Mantaining distance");
-            else if(defending > 0) {
+            if(moved) addToIndicatorString("Maintaining distance");
+            else if(defender) {
                 Pathfinding.navigateToLocationFuzzy(rc, myHQ);
-                defending--;
+                addToIndicatorString("Defending HQ");
             }
             else if(rc.getRoundNum() % 2 == 0) {
                 if(goingBackToHQ) {
