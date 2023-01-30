@@ -32,6 +32,14 @@ public class Headquarters {
         }
     }
 
+    static void setSurrounded(RobotController rc, int index, boolean surrounded) throws GameActionException {
+        rc.writeSharedArray(index, ((rc.readSharedArray(index) - 1) % 3601 + 3601 * (surrounded ? 1 : 0)) + 1);
+    }
+
+    static boolean getSurrounded(RobotController rc, int index) throws GameActionException {
+        return rc.readSharedArray(index) / 3602 > 0;
+    }
+
     static void detectWells(RobotController rc) throws GameActionException {
         for(WellInfo wi : rc.senseNearbyWells()) {
             MapLocation loc = wi.getMapLocation();
@@ -106,7 +114,7 @@ public class Headquarters {
     static void spawnLaunchers(RobotController rc) throws GameActionException {
         while(rc.isActionReady()) {
             if (rc.getResourceAmount(ResourceType.MANA) < 45) return;
-            if(State.getState(rc) == State.COMPLETE_CONTROL && rc.getResourceAmount(ResourceType.ADAMANTIUM) < 145) return;
+            if(State.getState(rc) == State.COMPLETE_CONTROL) return;
             MapLocation bestSpawn = null;
             int bestDist = 10000;
             for(MapInfo mi : rc.senseNearbyMapInfos(9)) {
@@ -229,6 +237,8 @@ public class Headquarters {
                 Comparator.comparingInt(x -> x.getLoc().distanceSquaredTo(rc.getLocation())) );
         queuedAdamWells = adamWells;
         queuedManaWells = manaWells;
+
+        setSurrounded(rc, hqIdx, enemyLaunchers > 1);
 
         int spawned = 0;
         if(State.getState(rc) == State.COMPLETE_CONTROL) {
