@@ -131,7 +131,9 @@ public class Launcher {
         if(closest != null) {
             if(dist == 17) { // L shape 4x1
                 for(Direction d : Direction.allDirections()) {
-                    if(myLoc.add(d).distanceSquaredTo(closest) == 16 && rc.canMove(d)) {
+                    if(!rc.onTheMap(myLoc.add(d))) continue;
+                    if(myLoc.add(d).add(rc.senseMapInfo(myLoc.add(d)).getCurrentDirection()).distanceSquaredTo(closest)
+                            == 16 && rc.canMove(d)) {
                         rc.move(d);
                         Pathfinding.resetDistance();
                         return true;
@@ -140,7 +142,9 @@ public class Launcher {
             }
             else { // dist must be 18; L shape 4x2
                 for(Direction d : Direction.allDirections()) {
-                    if(myLoc.add(d).distanceSquaredTo(closest) == 13 && rc.canMove(d)) {
+                    if(!rc.onTheMap(myLoc.add(d))) continue;
+                    if(myLoc.add(d).add(rc.senseMapInfo(myLoc.add(d)).getCurrentDirection()).distanceSquaredTo(closest)
+                            == 13 && rc.canMove(d)) {
                         rc.move(d);
                         Pathfinding.resetDistance();
                         return true;
@@ -189,7 +193,10 @@ public class Launcher {
                 for(int i = 0; i < 3; i++) {
                     MapLocation myLoc = rc.getLocation();
                     targetDirection = targetDirection.rotateRight();
-                    int distance = myLoc.add(targetDirection).distanceSquaredTo(target);
+                    MapLocation targetLoc = myLoc.add(targetDirection);
+                    if(!rc.onTheMap(targetLoc)) continue;
+                    int distance = targetLoc.add(rc.senseMapInfo(targetLoc)
+                            .getCurrentDirection()).distanceSquaredTo(target);
                     if(distance < 21 && distance > 9 && rc.canMove(targetDirection)) {
                         Pathfinding.resetDistance();
                         rc.move(targetDirection);
@@ -274,6 +281,7 @@ public class Launcher {
             int bestDist = 10000;
             for(int i = 0; i < 4; i++) {
                 int encoded = rc.readSharedArray(i) - 1;
+                if(encoded == -1) continue;
                 MapLocation hq = new MapLocation(encoded/60,encoded%60);
                 if(hq.distanceSquaredTo(rc.getLocation()) < bestDist) {
                     myHQ = hq;

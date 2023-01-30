@@ -27,8 +27,9 @@ public class Carrier {
     static int possibleSymmetry = 7;
 
     static int turnsAlive = 0;
+    static boolean goingBackToHQ;
     public static void run(RobotController rc) throws GameActionException {
-        initHQ(rc);
+        if(!goingBackToHQ) initHQ(rc);
         if(myWell == null && !scout && rc.canWriteSharedArray(0, 0)) receiveAssignment(rc);
 
         if(scout && turnsAlive < 3 && myHQ != null) {
@@ -51,7 +52,19 @@ public class Carrier {
             if(enemy.getType() == RobotType.LAUNCHER && rc.canAttack(enemy.getLocation())) {
                 rc.attack(enemy.getLocation());
             }
-            if(enemy.getType() == RobotType.LAUNCHER && myHQ != null) {
+            if(enemy.getType() == RobotType.LAUNCHER) {
+                int bestDist = 999999;
+                for(int i = 0; i < 4; i++) {
+                    int encoded = rc.readSharedArray(i) - 1;
+                    if(encoded == -1) continue;
+                    MapLocation hq = new MapLocation(encoded/60,encoded%60);
+                    if(hq.distanceSquaredTo(rc.getLocation()) < bestDist && !Pathfinding.towards(
+                            rc.getLocation().directionTo(enemy.getLocation()), rc.getLocation().directionTo(hq))) {
+                        myHQ = hq;
+                        bestDist = hq.distanceSquaredTo(rc.getLocation());
+                    }
+                }
+                goingBackToHQ = true;
                 Pathfinding.navigateToLocationBug(rc, myHQ);
                 moved = true;
             }
@@ -64,7 +77,7 @@ public class Carrier {
         depositResources(rc);
         recordWells(rc);
 
-        if (myResource != null && rc.getResourceAmount(myResource) > 38) {
+        if ((myResource != null && rc.getResourceAmount(myResource) > 38) || goingBackToHQ) {
             Pathfinding.navigateToLocationBug(rc, myHQ);
             if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString() + "; FULL:  " + myWellFull + "; Symmetry: " + possibleSymmetry);
             return;
@@ -273,9 +286,11 @@ public class Carrier {
 
         RobotInfo[] robots = rc.senseNearbyRobots(1000, rc.getTeam());
         for(RobotInfo robot : robots) {
-            if(robot.getType() == RobotType.HEADQUARTERS &&
-                    rc.canTransferResource(robot.getLocation(), myResource, rc.getResourceAmount(myResource))) {
-                rc.transferResource(robot.getLocation(), myResource, rc.getResourceAmount(myResource));
+            if(robot.getType() == RobotType.HEADQUARTERS) {
+                if(rc.canTransferResource(robot.getLocation(), myResource, rc.getResourceAmount(myResource))) {
+                    rc.transferResource(robot.getLocation(), myResource, rc.getResourceAmount(myResource));
+                }
+                goingBackToHQ = false;
             }
         }
     }
