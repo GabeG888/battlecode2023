@@ -334,7 +334,7 @@ public class Launcher {
 
         camping = surroundHQ(rc);
         if(camping) {
-            rc.setIndicatorString("Camping");
+            //rc.setIndicatorString("Camping");
             return;
         }
         //if(rc.getRoundNum() >= 3) possibleSymmetry &= rc.readSharedArray(63);

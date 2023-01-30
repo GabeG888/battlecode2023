@@ -280,7 +280,7 @@ public class Headquarters {
 
         //int scouts = totalSpawns / 5;
         totalSpawns += lastSpawn;
-        int adamMiners = totalSpawns / 4 - totalAdamMiners;
+        int adamMiners = totalSpawns / 5 - totalAdamMiners;
         if(rc.getRoundNum() < 100) adamMiners = 0;
         //scouts = totalSpawns / 5 - scouts;
         //scouts/=2;

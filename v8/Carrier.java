@@ -79,7 +79,7 @@ public class Carrier {
 
         if ((myResource != null && rc.getResourceAmount(myResource) > 38) || goingBackToHQ) {
             Pathfinding.navigateToLocationBug(rc, myHQ);
-            if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString() + "; FULL:  " + myWellFull + "; Symmetry: " + possibleSymmetry);
+            //if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString() + "; FULL:  " + myWellFull + "; Symmetry: " + possibleSymmetry);
             return;
         }
         else if(myWell != null) {
@@ -160,7 +160,7 @@ public class Carrier {
 
         //if(moved)
         //    MapStore.updateMap(rc);
-        if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString() + "; FULL:  " + myWellFull + "; Symmetry: " + possibleSymmetry);
+        //if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString() + "; FULL:  " + myWellFull + "; Symmetry: " + possibleSymmetry);
     }
 
     static boolean wellFull(RobotController rc, MapLocation well) throws GameActionException {
