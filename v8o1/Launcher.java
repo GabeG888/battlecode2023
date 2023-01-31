@@ -365,15 +365,23 @@ public class Launcher {
                     if(true) {
                         int minDist = 99999;
                         MapLocation leader = null;
+                        int launchersNear = 0;
                         for(RobotInfo ally : rc.senseNearbyRobots(-1, rc.getTeam())) {
                             if(ally.getType() == RobotType.LAUNCHER) {
                                 if(ally.getLocation().distanceSquaredTo(target) < minDist) {
                                     leader = ally.getLocation();
                                     minDist = ally.getLocation().distanceSquaredTo(target);
                                 }
+                                if(ally.getLocation().distanceSquaredTo(rc.getLocation()) <= 16) {
+                                    launchersNear ++;
+                                }
                             }
                         }
-                        if(rc.getLocation().distanceSquaredTo(target) < rc.getID() || leader == null || leader.distanceSquaredTo(rc.getLocation()) <= 9) {
+                        if(launchersNear < 2 && !rc.senseCloud(rc.getLocation())) {
+
+                        }
+                        else if(leader == null || rc.getLocation().distanceSquaredTo(target) < leader.distanceSquaredTo(target) || leader.distanceSquaredTo(rc.getLocation()) <= 9) {
+
                             Pathfinding.navigateToLocationBug(rc, target);
                             addToIndicatorString("Going to target");
                         }
