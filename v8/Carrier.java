@@ -46,10 +46,25 @@ public class Carrier {
 
         recordWells(rc);
 
+        int carriersNearby = 0;
+        for(RobotInfo ally : rc.senseNearbyRobots(1000, rc.getTeam())) {
+            if(ally.getType() == RobotType.CARRIER) carriersNearby++;
+        }
+
+        for(WellInfo well : rc.senseNearbyWells()) {
+            if(carriersNearby < 9 && well.getResourceType() == myResource &&
+                    (myWell == null ||
+                            well.getMapLocation().distanceSquaredTo(myHQ) < myWell.distanceSquaredTo(myHQ))) {
+                myWell = well.getMapLocation();
+                scout = false;
+            }
+        }
+
         boolean moved = false;
         RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
         for(RobotInfo enemy : enemies) {
-            if(enemy.getType() == RobotType.LAUNCHER && rc.canAttack(enemy.getLocation())) {
+            if(enemy.getType() == RobotType.LAUNCHER && rc.canAttack(enemy.getLocation())){// &&
+                    //(rc.getHealth() <= 20 || myResource == ResourceType.ADAMANTIUM)) {
                 rc.attack(enemy.getLocation());
             }
             if(enemy.getType() == RobotType.LAUNCHER) {
@@ -226,22 +241,31 @@ public class Carrier {
     }
 
     static void receiveAssignment(RobotController rc) throws GameActionException {
+        int bestDistance = 999999;
+        int bestIndex = -1;
         for(int i = 4; i <= 23; i++) {
             int wellState = rc.readSharedArray(i);
             Assignment a = new Assignment(wellState);
-            if(a.num > 0) {
-                a.num--;
-                rc.writeSharedArray(i, a.encodeAssignment());
-                Well well = new Well(rc, a.wellIdx);
-                myWell = well.getLoc();
-                myResource = well.resourceType;
-                if(myResource == ResourceType.ADAMANTIUM) initialAdam = true;
-                //if(rc.getTeam().equals(Team.A))
-                    //System.out.println("receiving assignment: "+  well.wellIdx + " " + wellState);
-                return;
+            Well well = new Well(rc, a.wellIdx);
+            if(myResource == null) myResource = well.resourceType;
+            if(a.num > 0 && well.resourceType == myResource && well.getLoc().distanceSquaredTo(myHQ) < bestDistance) {
+                bestIndex = i;
+                bestDistance = well.getLoc().distanceSquaredTo(myHQ);
             }
         }
-        scout = true;
+
+        if(bestIndex < 0) {
+            scout = true;
+            return;
+        }
+
+        int wellState = rc.readSharedArray(bestIndex);
+        Assignment a = new Assignment(wellState);
+        Well well = new Well(rc, a.wellIdx);
+        a.num--;
+        rc.writeSharedArray(bestIndex, a.encodeAssignment());
+        myWell = well.getLoc();
+        if(myResource == ResourceType.ADAMANTIUM) initialAdam = true;
     }
 
     static void initHQ(RobotController rc) throws GameActionException {

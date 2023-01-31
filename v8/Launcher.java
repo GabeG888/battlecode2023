@@ -1,6 +1,7 @@
 package v8;
 
 import battlecode.common.*;
+import battlecode.world.Island;
 
 import java.awt.*;
 import java.nio.file.Path;
@@ -192,7 +193,8 @@ public class Launcher {
                 Direction targetDirection = rc.getLocation().directionTo(target);
                 for(int i = 0; i < 3; i++) {
                     MapLocation myLoc = rc.getLocation();
-                    targetDirection = targetDirection.rotateRight();
+                    if(rc.getRoundNum() % 100 < 50) targetDirection = targetDirection.rotateRight();
+                    else targetDirection = targetDirection.rotateLeft();
                     MapLocation targetLoc = myLoc.add(targetDirection);
                     if(!rc.onTheMap(targetLoc)) continue;
                     int distance = targetLoc.add(rc.senseMapInfo(targetLoc)
