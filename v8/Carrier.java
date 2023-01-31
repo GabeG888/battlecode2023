@@ -53,13 +53,13 @@ public class Carrier {
                 rc.attack(enemy.getLocation());
             }
             if(enemy.getType() == RobotType.LAUNCHER) {
+
                 int bestDist = 999999;
                 for(int i = 0; i < 4; i++) {
                     int encoded = rc.readSharedArray(i) - 1;
                     if(encoded == -1) continue;
-                    MapLocation hq = new MapLocation(encoded/60,encoded%60);
-                    if(hq.distanceSquaredTo(rc.getLocation()) < bestDist && !Pathfinding.towards(
-                            rc.getLocation().directionTo(enemy.getLocation()), rc.getLocation().directionTo(hq))) {
+                    MapLocation hq = new MapLocation((encoded%3601)/60,(encoded % 3601)%60);
+                    if(hq.distanceSquaredTo(rc.getLocation()) < bestDist && !getSurrounded(rc, i)) {
                         myHQ = hq;
                         bestDist = hq.distanceSquaredTo(rc.getLocation());
                     }
@@ -77,7 +77,7 @@ public class Carrier {
         depositResources(rc);
         recordWells(rc);
 
-        if ((myResource != null && rc.getResourceAmount(myResource) > 38) || goingBackToHQ) {
+        if (myHQ != null && (myResource != null && rc.getResourceAmount(myResource) > 38) || goingBackToHQ) {
             Pathfinding.navigateToLocationBug(rc, myHQ);
             //if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString() + "; FULL:  " + myWellFull + "; Symmetry: " + possibleSymmetry);
             return;
@@ -161,6 +161,10 @@ public class Carrier {
         //if(moved)
         //    MapStore.updateMap(rc);
         //if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString() + "; FULL:  " + myWellFull + "; Symmetry: " + possibleSymmetry);
+    }
+
+    static boolean getSurrounded(RobotController rc, int index) throws GameActionException {
+        return rc.readSharedArray(index) / 3602 > 0;
     }
 
     static boolean wellFull(RobotController rc, MapLocation well) throws GameActionException {
@@ -247,6 +251,17 @@ public class Carrier {
                 myHQ = robot.getLocation();
                 hqIdx = Communicator.getHQIdx(rc, myHQ);
                 return;
+            }
+        }
+
+        int bestDist = 999999;
+        for(int i = 0; i < 4; i++) {
+            int encoded = rc.readSharedArray(i) - 1;
+            if(encoded == -1) continue;
+            MapLocation hq = new MapLocation((encoded%3601)/60,(encoded % 3601)%60);
+            if(hq.distanceSquaredTo(rc.getLocation()) < bestDist && !getSurrounded(rc, i)) {
+                myHQ = hq;
+                bestDist = hq.distanceSquaredTo(rc.getLocation());
             }
         }
     }
