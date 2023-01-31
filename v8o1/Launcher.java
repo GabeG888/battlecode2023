@@ -220,23 +220,71 @@ public class Launcher {
     static void attackClouds(RobotController rc) throws GameActionException {
         MapLocation myLoc = rc.getLocation();
         MapLocation[] clouds = rc.senseNearbyCloudLocations();
-        /*Arrays.sort(clouds, Comparator.comparingInt((MapLocation x) -> {
-            try {
-                return -getWallsAround(rc, x);
-            } catch  (GameActionException e) {
-                e.printStackTrace();
-                return 0;
-            }
-        }).thenComparingInt((MapLocation x) -> x.distanceSquaredTo(target)));*/
         for(MapLocation cloud : clouds) {
             if(myLoc.distanceSquaredTo(cloud) > 4 && rc.canAttack(cloud)) rc.attack(cloud);
         }
 
-        if(!rc.senseCloud(myLoc)) return;
-        MapLocation[] locs = rc.getAllLocationsWithinRadiusSquared(myLoc, 16);
-        //Arrays.sort(locs, Comparator.comparingInt((MapLocation x) -> x.distanceSquaredTo(target)));
-        for(MapLocation loc : locs) {
-            if(myLoc.distanceSquaredTo(loc) > 4 && rc.canAttack(loc)) rc.attack(loc);
+        if(!rc.senseCloud(myLoc) || !rc.isActionReady()) return;
+
+        MapLocation potentialLoc = new MapLocation(myLoc.x + 1, myLoc.y + 2);
+        if(rc.onTheMap(potentialLoc) && rc.canAttack(potentialLoc)) {
+            rc.attack(potentialLoc);
+            return;
+        }
+        potentialLoc = new MapLocation(myLoc.x + 2, myLoc.y + 1);
+        if(rc.onTheMap(potentialLoc) && rc.canAttack(potentialLoc)) {
+            rc.attack(potentialLoc);
+            return;
+        }
+        potentialLoc = new MapLocation(myLoc.x + 2, myLoc.y - 1);
+        if(rc.onTheMap(potentialLoc) && rc.canAttack(potentialLoc)) {
+            rc.attack(potentialLoc);
+            return;
+        }
+        potentialLoc = new MapLocation(myLoc.x + 1, myLoc.y - 2);
+        if(rc.onTheMap(potentialLoc) && rc.canAttack(potentialLoc)) {
+            rc.attack(potentialLoc);
+            return;
+        }
+        potentialLoc = new MapLocation(myLoc.x - 1, myLoc.y - 2);
+        if(rc.onTheMap(potentialLoc) && rc.canAttack(potentialLoc)) {
+            rc.attack(potentialLoc);
+            return;
+        }
+        potentialLoc = new MapLocation(myLoc.x - 2, myLoc.y - 1);
+        if(rc.onTheMap(potentialLoc) && rc.canAttack(potentialLoc)) {
+            rc.attack(potentialLoc);
+            return;
+        }
+        potentialLoc = new MapLocation(myLoc.x - 2, myLoc.y + 1);
+        if(rc.onTheMap(potentialLoc) && rc.canAttack(potentialLoc)) {
+            rc.attack(potentialLoc);
+            return;
+        }
+        potentialLoc = new MapLocation(myLoc.x - 1, myLoc.y + 2);
+        if(rc.onTheMap(potentialLoc) && rc.canAttack(potentialLoc)) {
+            rc.attack(potentialLoc);
+            return;
+        }
+        potentialLoc = new MapLocation(myLoc.x, myLoc.y + 2);
+        if(rc.onTheMap(potentialLoc) && rc.canAttack(potentialLoc)) {
+            rc.attack(potentialLoc);
+            return;
+        }
+        potentialLoc = new MapLocation(myLoc.x + 2, myLoc.y);
+        if(rc.onTheMap(potentialLoc) && rc.canAttack(potentialLoc)) {
+            rc.attack(potentialLoc);
+            return;
+        }
+        potentialLoc = new MapLocation(myLoc.x, myLoc.y - 2);
+        if(rc.onTheMap(potentialLoc) && rc.canAttack(potentialLoc)) {
+            rc.attack(potentialLoc);
+            return;
+        }
+        potentialLoc = new MapLocation(myLoc.x - 2, myLoc.y);
+        if(rc.onTheMap(potentialLoc) && rc.canAttack(potentialLoc)) {
+            rc.attack(potentialLoc);
+            return;
         }
     }
 
