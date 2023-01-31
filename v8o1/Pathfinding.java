@@ -2,7 +2,9 @@ package v8o1;
 
 import battlecode.common.*;
 
+import java.util.HashSet;
 import java.util.Random;
+import java.util.*;
 
 public class Pathfinding {
 
@@ -178,17 +180,16 @@ public class Pathfinding {
         return true;
     }
 
-    static boolean setRotation = false;
     public static boolean navigateToLocationBug(RobotController rc, MapLocation targetLoc) throws GameActionException {
         if(targetLoc != lastTarget) {
             bestDistance = 999999;
             lastDirection = null;
             lastTarget = targetLoc;
             rotateRight = true;
-            setRotation = false;
         }
         if(!rc.isMovementReady()) return true;
         if(bestDistance < 1) return true;
+
         if(rc.canSenseLocation(targetLoc) && !rc.sensePassability(targetLoc)) return false;
 
         rc.setIndicatorLine(rc.getLocation(), targetLoc, 255, 0, 0);
@@ -209,7 +210,7 @@ public class Pathfinding {
 
                 if((rc.getType() == RobotType.LAUNCHER ||
                         (rc.getResourceAmount(ResourceType.MANA) +
-                        rc.getResourceAmount(ResourceType.ADAMANTIUM)) > 30) &&
+                                rc.getResourceAmount(ResourceType.ADAMANTIUM)) > 30) &&
                         rc.canSenseLocation(endLoc.add(current)) &&
                         rc.sensePassability(endLoc.add(current)) &&
                         rc.senseRobotAtLocation(endLoc.add(current)) == null)
@@ -244,72 +245,6 @@ public class Pathfinding {
                 else lastDirection = myLoc.directionTo(targetLoc).rotateLeft().rotateLeft();
             }
             Direction direction = null;
-
-            /*if(!setRotation) {
-                setRotation = true;
-                int bestRightDist = 99999;
-                int bestLeftDist = 99999;
-                direction = lastDirection.rotateLeft().rotateLeft();
-                for (int i = 0; i < 8; i++) {
-                    MapLocation newLoc = myLoc.add(direction);
-
-                    if (!rc.onTheMap(newLoc)) {
-                        direction = direction.rotateRight();
-                        continue;
-                    }
-                    if (!rc.canSenseLocation(newLoc) || !rc.sensePassability(newLoc)) {
-                        direction = direction.rotateRight();
-                        continue;
-                    }
-                    RobotInfo robotAtLoc = rc.senseRobotAtLocation(newLoc);
-                    Direction current = rc.senseMapInfo(newLoc).getCurrentDirection();
-
-                    if (canMove(rc, direction) && rc.canMove(direction)) {
-                        bestRightDist = newLoc.distanceSquaredTo(targetLoc);
-                        break;
-                    } else if (rc.onTheMap(myLoc.add(direction)) && robotAtLoc != null &&
-                            robotAtLoc.getType() == RobotType.HEADQUARTERS || turnsWaited > turnsToWait) {
-                        direction = direction.rotateRight();
-                    } else {
-                        break;
-                    }
-                }
-                direction = lastDirection.rotateRight().rotateRight();
-
-                for (int i = 0; i < 8; i++) {
-                    MapLocation newLoc = myLoc.add(direction);
-
-                    if (!rc.onTheMap(newLoc)) {
-                        direction = direction.rotateLeft();
-                        continue;
-                    }
-                    if (!rc.canSenseLocation(newLoc) || !rc.sensePassability(newLoc)) {
-                        direction = direction.rotateLeft();
-                        continue;
-                    }
-                    RobotInfo robotAtLoc = rc.senseRobotAtLocation(newLoc);
-                    Direction current = rc.senseMapInfo(newLoc).getCurrentDirection();
-
-                    if (canMove(rc, direction) && rc.canMove(direction)) {
-                        bestLeftDist = newLoc.distanceSquaredTo(targetLoc);
-                        break;
-                    } else if (rc.onTheMap(myLoc.add(direction)) && robotAtLoc != null &&
-                            robotAtLoc.getType() == RobotType.HEADQUARTERS || turnsWaited > turnsToWait) {
-                        direction = direction.rotateLeft();
-                    } else {
-                        break;
-                    }
-                }
-
-                if(bestRightDist == 99999 && bestLeftDist == 99999) {
-                    setRotation = false;
-                }
-                else {
-                    System.out.println(bestLeftDist + " " + bestLeftDist);
-                    rotateRight = bestRightDist <= bestLeftDist;
-                }
-            }*/
-
             if (rotateRight) direction = lastDirection.rotateLeft().rotateLeft();
             else direction = lastDirection.rotateRight().rotateRight();
             for (int i = 0; i < 8; i++) {
@@ -318,7 +253,7 @@ public class Pathfinding {
                 MapLocation newLoc = myLoc.add(direction);
 
                 if(!rc.onTheMap(newLoc)) {
-                    rotateRight = !rotateRight;
+                    //rotateRight = !rotateRight;
                     if(rotateRight)
                         direction = direction.rotateRight();
                     else direction = direction.rotateLeft();
@@ -374,8 +309,8 @@ public class Pathfinding {
 
     public static boolean navigateToLocationBug2(RobotController rc, MapLocation targetLoc) throws GameActionException {
         int cooldown = (rc.getType() == RobotType.CARRIER ?
-                        5 + 3*(rc.getResourceAmount(ResourceType.MANA) + rc.getResourceAmount(ResourceType.ADAMANTIUM))/8
-                        : 10);
+                5 + 3*(rc.getResourceAmount(ResourceType.MANA) + rc.getResourceAmount(ResourceType.ADAMANTIUM))/8
+                : 10);
         int moves = Math.max((10-rc.getMovementCooldownTurns())/cooldown, 0);
 
         for(; moves > 0; moves--) {

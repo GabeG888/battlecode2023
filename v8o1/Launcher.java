@@ -363,24 +363,23 @@ public class Launcher {
                 }
                 else {
                     if(true) {
-                        int maxID = 0;
+                        int minDist = 99999;
                         MapLocation leader = null;
                         for(RobotInfo ally : rc.senseNearbyRobots(-1, rc.getTeam())) {
                             if(ally.getType() == RobotType.LAUNCHER) {
-                                if(ally.getID() > maxID) {
+                                if(ally.getLocation().distanceSquaredTo(target) < minDist) {
                                     leader = ally.getLocation();
-                                    maxID = ally.getID();
+                                    minDist = ally.getLocation().distanceSquaredTo(target);
                                 }
                             }
                         }
-                        if(maxID < rc.getID() || leader == null || leader.distanceSquaredTo(rc.getLocation()) <= 9) {
+                        if(rc.getLocation().distanceSquaredTo(target) < rc.getID() || leader == null || leader.distanceSquaredTo(rc.getLocation()) <= 9) {
                             Pathfinding.navigateToLocationBug(rc, target);
                             addToIndicatorString("Going to target");
                         }
                         else {
                             Pathfinding.navigateToLocationBug(rc, leader);
                             addToIndicatorString("Following leader");
-
                         }
                     }
                     else {
