@@ -129,7 +129,7 @@ public class Carrier {
                     WellInfo wi = rc.senseWell(new MapLocation(rc.getMapWidth()-1 - x, y));
                     if(wi == null || wi.getResourceType() != well.resourceType) {
                         possibleSymmetry &= ~MapStore.LEFTRIGHT;
-                        System.out.println("LEFTRIGHT " + loc + " " + new MapLocation(rc.getMapWidth()-1 - x, y));
+                        //System.out.println("LEFTRIGHT " + loc + " " + new MapLocation(rc.getMapWidth()-1 - x, y));
                     }
                 }
             }
@@ -138,7 +138,7 @@ public class Carrier {
                     WellInfo wi = rc.senseWell(new MapLocation(x, rc.getMapHeight()-1 - y));
                     if(wi == null || wi.getResourceType() != well.resourceType) {
                         possibleSymmetry &= ~MapStore.UPDOWN;
-                        System.out.println("UPDOWN " + loc + " " + new MapLocation(x, rc.getMapHeight()-1 - y));
+                        //System.out.println("UPDOWN " + loc + " " + new MapLocation(x, rc.getMapHeight()-1 - y));
 
                     }
                 }
@@ -148,7 +148,7 @@ public class Carrier {
                     WellInfo wi = rc.senseWell(new MapLocation(rc.getMapWidth()-1 - x, rc.getMapHeight()-1 - y));
                     if(wi == null || wi.getResourceType() != well.resourceType) {
                         possibleSymmetry &= ~MapStore.ROTATIONAL;
-                        System.out.println("ROTATIONAL " + loc + " " + new MapLocation(rc.getMapWidth()-1 - x, rc.getMapHeight()-1 - y));
+                        //System.out.println("ROTATIONAL " + loc + " " + new MapLocation(rc.getMapWidth()-1 - x, rc.getMapHeight()-1 - y));
 
                     }
                 }
@@ -160,7 +160,8 @@ public class Carrier {
 
         //if(moved)
         //    MapStore.updateMap(rc);
-        //if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString() + "; FULL:  " + myWellFull + "; Symmetry: " + possibleSymmetry);
+        if(myWell != null)  rc.setIndicatorString(myWell.toString() + " " + myResource.toString() + "; FULL:  " + myWellFull + "; Symmetry: " + possibleSymmetry);
+        else rc.setIndicatorString("Symmetry: " + possibleSymmetry);
     }
 
     static boolean getSurrounded(RobotController rc, int index) throws GameActionException {
@@ -256,9 +257,9 @@ public class Carrier {
 
         int bestDist = 999999;
         for(int i = 0; i < 4; i++) {
-            int encoded = rc.readSharedArray(i) - 1;
+            int encoded = (rc.readSharedArray(i) & 0b0111_1111_1111_1111) - 1;
             if(encoded == -1) continue;
-            MapLocation hq = new MapLocation((encoded%3601)/60,(encoded % 3601)%60);
+            MapLocation hq = new MapLocation(encoded/60,encoded%60);
             if(hq.distanceSquaredTo(rc.getLocation()) < bestDist && !getSurrounded(rc, i)) {
                 myHQ = hq;
                 bestDist = hq.distanceSquaredTo(rc.getLocation());

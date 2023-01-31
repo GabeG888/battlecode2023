@@ -351,7 +351,7 @@ public class Launcher {
                     WellInfo wi = rc.senseWell(new MapLocation(rc.getMapWidth()-1 - x, y));
                     if(wi == null || wi.getResourceType() != well.resourceType) {
                         possibleSymmetry &= ~MapStore.LEFTRIGHT;
-                        System.out.println("LEFTRIGHT " + loc + " " + new MapLocation(rc.getMapWidth()-1 - x, y));
+                        //System.out.println("LEFTRIGHT " + loc + " " + new MapLocation(rc.getMapWidth()-1 - x, y));
                     }
                 }
             }
@@ -360,7 +360,7 @@ public class Launcher {
                     WellInfo wi = rc.senseWell(new MapLocation(x, rc.getMapHeight()-1 - y));
                     if(wi == null || wi.getResourceType() != well.resourceType) {
                         possibleSymmetry &= ~MapStore.UPDOWN;
-                        System.out.println("UPDOWN " + loc + " " + new MapLocation(x, rc.getMapHeight()-1 - y));
+                        //System.out.println("UPDOWN " + loc + " " + new MapLocation(x, rc.getMapHeight()-1 - y));
 
                     }
                 }
@@ -370,7 +370,7 @@ public class Launcher {
                     WellInfo wi = rc.senseWell(new MapLocation(rc.getMapWidth()-1 - x, rc.getMapHeight()-1 - y));
                     if(wi == null || wi.getResourceType() != well.resourceType) {
                         possibleSymmetry &= ~MapStore.ROTATIONAL;
-                        System.out.println("ROTATIONAL " + loc + " " + new MapLocation(rc.getMapWidth()-1 - x, rc.getMapHeight()-1 - y));
+                        //System.out.println("ROTATIONAL " + loc + " " + new MapLocation(rc.getMapWidth()-1 - x, rc.getMapHeight()-1 - y));
 
                     }
                 }

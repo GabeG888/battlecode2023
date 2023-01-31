@@ -36,7 +36,7 @@ public class Launcher {
     static void initPotentialHQLocs(RobotController rc) throws GameActionException {
         //int symmetry = rc.readSharedArray(63);
         for(int i = 0 ; i < GameConstants.MAX_STARTING_HEADQUARTERS; i++) {
-            int loc = rc.readSharedArray(i) - 1;
+            int loc = (rc.readSharedArray(i) & 0b0111_1111_1111_1111) - 1;
             if(loc == -1) return;
             int x = loc / 60, y = loc % 60;
             leftrightLocs.add(new MapLocation(rc.getMapWidth()-1 - x, y));
@@ -282,7 +282,7 @@ public class Launcher {
         if(myHQ == null) {
             int bestDist = 10000;
             for(int i = 0; i < 4; i++) {
-                int encoded = rc.readSharedArray(i) - 1;
+                int encoded = (rc.readSharedArray(i) & 0b0111_1111_1111_1111) - 1;
                 if(encoded == -1) continue;
                 MapLocation hq = new MapLocation(encoded/60,encoded%60);
                 if(hq.distanceSquaredTo(rc.getLocation()) < bestDist) {
@@ -291,7 +291,8 @@ public class Launcher {
                     bestDist = hq.distanceSquaredTo(rc.getLocation());
                 }
             }
-            if(enemies.length > 0) defender = true;
+            if(enemies.length > 0 || (rc.readSharedArray(hqIdx) & 0b1000_0000_0000_0000) == 1) defender = true;
+            if(myHQ == null) System.out.println("?????");
         }
         if(defender && ((rc.readSharedArray(hqIdx) & 0b1000_0000_0000_0000) == 0)) {
             defender = false;
@@ -392,7 +393,7 @@ public class Launcher {
                     WellInfo wi = rc.senseWell(new MapLocation(rc.getMapWidth()-1 - x, y));
                     if(wi == null || wi.getResourceType() != well.resourceType) {
                         possibleSymmetry &= ~MapStore.LEFTRIGHT;
-                        System.out.println("LEFTRIGHT " + loc + " " + new MapLocation(rc.getMapWidth()-1 - x, y));
+                        //System.out.println("LEFTRIGHT " + loc + " " + new MapLocation(rc.getMapWidth()-1 - x, y));
                     }
                 }
             }
@@ -401,7 +402,7 @@ public class Launcher {
                     WellInfo wi = rc.senseWell(new MapLocation(x, rc.getMapHeight()-1 - y));
                     if(wi == null || wi.getResourceType() != well.resourceType) {
                         possibleSymmetry &= ~MapStore.UPDOWN;
-                        System.out.println("UPDOWN " + loc + " " + new MapLocation(x, rc.getMapHeight()-1 - y));
+                        //System.out.println("UPDOWN " + loc + " " + new MapLocation(x, rc.getMapHeight()-1 - y));
 
                     }
                 }
@@ -411,7 +412,7 @@ public class Launcher {
                     WellInfo wi = rc.senseWell(new MapLocation(rc.getMapWidth()-1 - x, rc.getMapHeight()-1 - y));
                     if(wi == null || wi.getResourceType() != well.resourceType) {
                         possibleSymmetry &= ~MapStore.ROTATIONAL;
-                        System.out.println("ROTATIONAL " + loc + " " + new MapLocation(rc.getMapWidth()-1 - x, rc.getMapHeight()-1 - y));
+                        //System.out.println("ROTATIONAL " + loc + " " + new MapLocation(rc.getMapWidth()-1 - x, rc.getMapHeight()-1 - y));
 
                     }
                 }
@@ -423,8 +424,12 @@ public class Launcher {
             goingBackToHQ = false;
         }
 
-        addToIndicatorString(target.toString() + " Symmetries (possible/target): " + possibleSymmetry+"/"+targetSymmetry);
+        addToIndicatorString("HQ: " + myHQ);
 
-        //rc.setIndicatorString(debug);
+        if(target != null)
+            addToIndicatorString(target.toString() + " Symmetries (possible/target): " + possibleSymmetry+"/"+targetSymmetry);
+        if(target == null)
+            addToIndicatorString("Symmetries (possible/target): " + possibleSymmetry+"/"+targetSymmetry);
+        rc.setIndicatorString(debug);
     }
 }

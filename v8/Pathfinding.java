@@ -303,7 +303,7 @@ public class Pathfinding {
             if(!moved) break;
         }
 
-        rc.setIndicatorString(debug);
+        //rc.setIndicatorString(debug);
         return true;
     }
 

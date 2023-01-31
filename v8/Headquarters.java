@@ -33,11 +33,11 @@ public class Headquarters {
     }
 
     static void setSurrounded(RobotController rc, int index, boolean surrounded) throws GameActionException {
-        rc.writeSharedArray(index, ((rc.readSharedArray(index) - 1) % 3601 + 3601 * (surrounded ? 1 : 0)) + 1);
+        rc.writeSharedArray(index, surrounded ? rc.readSharedArray(index) | 0b1000_0000_0000_0000 : rc.readSharedArray(index) & 0b0111_1111_1111_1111);
     }
 
     static boolean getSurrounded(RobotController rc, int index) throws GameActionException {
-        return rc.readSharedArray(index) / 3602 > 0;
+        return (rc.readSharedArray(index) & 0b1000_0000_0000_0000) > 0;
     }
 
     static void detectWells(RobotController rc) throws GameActionException {
@@ -199,13 +199,6 @@ public class Headquarters {
             acquireTarget(rc);
         }
 
-        if(enemyLaunchers > 0) {
-            rc.writeSharedArray(hqIdx, rc.readSharedArray(hqIdx) | 0b1000_0000_0000_0000);
-        }
-        else{
-            rc.writeSharedArray(hqIdx, rc.readSharedArray(hqIdx) & 0b0111_1111_1111_1111);
-        }
-
         //Clear assignments list
         if(hqIdx == 0) {
             for(int i = 4; i <= 23; i++) {
@@ -273,7 +266,8 @@ public class Headquarters {
         }
 
         //System.out.println(debug);
-        rc.setIndicatorString(State.getState(rc).toString() + "; Symmetry: " + rc.readSharedArray(63));
+        rc.setIndicatorString(State.getState(rc).toString() + "; Symmetry: " + rc.readSharedArray(63) + "; " +
+                Integer.toBinaryString(rc.readSharedArray(hqIdx)));
         lastSpawn = spawned;
 
         //if(rc.getRoundNum() == 100) rc.resign();

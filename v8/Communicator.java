@@ -14,8 +14,8 @@ public class Communicator {
 
     public static int getHQIdx(RobotController rc, MapLocation hq) throws GameActionException {
         for(int i = 0; i < GameConstants.MAX_STARTING_HEADQUARTERS; i++) {
-            int encoded = rc.readSharedArray(i) - 1;
-            if(hq.x == (encoded%3601) / 60 && hq.y == (encoded%3601) % 60) return i;
+            int encoded = (rc.readSharedArray(i) & 0b0111_1111_1111_1111) - 1;
+            if(hq.x == encoded / 60 && hq.y == (encoded) % 60) return i;
         }
         System.out.println("No index found.");
         return 0;
