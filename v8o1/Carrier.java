@@ -55,8 +55,7 @@ public class Carrier {
         boolean moved = false;
         RobotInfo[] enemies = rc.senseNearbyRobots(1000, rc.getTeam().opponent());
         for(RobotInfo enemy : enemies) {
-            if(enemy.getType() == RobotType.LAUNCHER && rc.canAttack(enemy.getLocation())){// &&
-                    //(rc.getHealth() <= 20 || myResource == ResourceType.ADAMANTIUM)) {
+            if(enemy.getType() == RobotType.LAUNCHER && rc.canAttack(enemy.getLocation())){
                 rc.attack(enemy.getLocation());
             }
             if(enemy.getType() == RobotType.LAUNCHER) {
